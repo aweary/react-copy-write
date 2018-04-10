@@ -1,0 +1,18 @@
+{
+  "name": "copy-on-write-store",
+  "version": "0.1.0",
+  "main": "src/index.js",
+  "author": "Brandon Dail <brandondail@fb.com>",
+  "license": "MIT",
+  "scripts": {
+    "flow": "flow"
+  },
+  "dependencies": {
+    "immer": "^1.2.1",
+    "invariant": "^2.2.4",
+    "react": "^16.3.1"
+  },
+  "devDependencies": {
+    "flow-bin": "^0.69.0"
+  }
+}
