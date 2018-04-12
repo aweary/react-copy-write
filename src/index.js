@@ -9,32 +9,23 @@ import React, { Component } from "react";
 import produce from "immer";
 import invariant from "invariant";
 
+// Update functions take the current state, mutate it, and return nothing (undefined)
+type UpdateFn<T> = T => void;
+// The updater function that gets called in consumers
+type Updater<T> = (UpdateFn<T>) => void;
+// The callback passed to consumers accept the state and the
+// update function, and return a React.Node to render. If the user
+// defines a selector, the state will be whatever they return from the selector 
+// (Ideally that would just be some subset of T). The updater function is always
+// called with the entire state tree.
+type ConsumerCallback<T, S> = (S, Updater<T>) => React$Node;
+
 // The default selector is the identity function
 function identityFn<T>(n: T): T {
   return n;
 }
 
-type updateFn<T> = ((T) => void) => void;
-
-type ConsumerProps<T, S> = {
-  selector: T => S,
-  children: (S, updateFn<T>) => React$Node
-};
-
-declare function createCopyOnWriteState<T, S>(
-  baseState: T
-): {
-  createMutator: ((T) => void) => () => void,
-  Provider: React$Component<{ children: React$Node }, { state: T }>,
-  Consumer: React$Component<ConsumerProps<T, S>>,
-  Mutator: React$Component<{
-    children: string
-  }>
-};
-
-export default function createCopyOnWriteState(baseState) {
-  type T = typeof baseState;
-  type boundUpdater = updateFn<T>;
+export default function createCopyOnWriteState<T>(baseState: T) {
   // The current state is managed by a closure, shared by the consumers and
   // the provider. The consumers still respect the provider/consumer contract
   // that React context enforces, by only accessing state in the consumer.
@@ -45,7 +36,7 @@ export default function createCopyOnWriteState(baseState) {
   const State = React.createContext(baseState);
   // Wraps immer's produce utility. Only notify the Provider
   // if the returned draft has been changed.
-  function update(fn: T => void) {
+  function update(fn: UpdateFn<T>) {
     invariant(
       providerListener !== null,
       `update(...): you cannot call update when no CopyOnWriteStoreProvider ` +
@@ -60,7 +51,7 @@ export default function createCopyOnWriteState(baseState) {
     }
   }
 
-  function createMutator(fn: boundUpdater) {
+  function createMutator(fn: UpdateFn<T>) {
     return () => update(fn);
   }
 
@@ -98,7 +89,7 @@ export default function createCopyOnWriteState(baseState) {
   }
 
   class ConusmerIndirection<S> extends React.Component<{
-    children: (S, updateFn<T>) => React$Node,
+    children: ConsumerCallback<T, S>,
     state: S
   }> {
     // This simpler than using PureComponent; we don't
@@ -114,9 +105,10 @@ export default function createCopyOnWriteState(baseState) {
     }
   }
 
-  class CopyOnWriteConsumer<S> extends React.Component<
-    ConsumerProps<T, S>
-  > {
+  class CopyOnWriteConsumer<S> extends React.Component<{
+    selector: T => S,
+    children: ConsumerCallback<T, S>
+  }> {
     static defaultProps = {
       selector: identityFn
     };
@@ -140,7 +132,7 @@ export default function createCopyOnWriteState(baseState) {
   // of the state. It's used for cases where a component wants to update some
   // state, but doesn't care about what the current state is
   class CopyOnWriteMutator extends React.Component<{
-    children: (T => void) => React$Node,
+    children: (Updater<T>) => React$Node
   }> {
     render() {
       return this.props.children(update);
