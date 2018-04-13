@@ -13,12 +13,23 @@ import invariant from "invariant";
 type UpdateFn<T> = T => void;
 // The updater function that gets called in consumers
 type Updater<T> = (UpdateFn<T>) => void;
+
+type ObservedState<S> = S | Array<S>;
 // The callback passed to consumers accept the state and the
 // update function, and return a React.Node to render. If the user
 // defines a selector, the state will be whatever they return from the selector 
 // (Ideally that would just be some subset of T). The updater function is always
 // called with the entire state tree.
-type ConsumerCallback<T, S> = (S, Updater<T>) => React$Node;
+type ConsumerCallback<T, S> = (ObservedState<S>, Updater<T>) => React$Node;
+
+/**
+ * A selector can either be a simple selector, which just makes the base state to
+ * some subset of that current state, or it can be an array of simple selectors which
+ * also map the current state to some hetrogenous subsets of that current state. 
+ */
+
+type Selector<T, S> = T => ObservedState<S>;
+  
 
 // The default selector is the identity function
 function identityFn<T>(n: T): T {
@@ -90,7 +101,7 @@ export default function createCopyOnWriteState<T>(baseState: T) {
 
   class ConusmerIndirection<S> extends React.Component<{
     children: ConsumerCallback<T, S>,
-    state: S
+    state: ObservedState<S>, 
   }> {
     // This simpler than using PureComponent; we don't
     // need to do a shallowEquals check since we rely on
@@ -106,16 +117,23 @@ export default function createCopyOnWriteState<T>(baseState: T) {
   }
 
   class CopyOnWriteConsumer<S> extends React.Component<{
-    selector: T => S,
+    selector: Selector<T, S>,
     children: ConsumerCallback<T, S>
   }> {
     static defaultProps = {
       selector: identityFn
     };
 
-    consumer = (state: typeof baseState) => {
+    getObservedState(state: T, selectors: Selector<T, S>) : ObservedState<S> {
+      if (Array.isArray(selectors)) {
+        return selectors.map(fn => fn(state));
+      }
+      return selectors(state);
+    } 
+
+    consumer = (state: T) => {
       const { children, selector } = this.props;
-      const observedState = selector(state);
+      const observedState = this.getObservedState(state, selector);
       return (
         <ConusmerIndirection state={observedState}>
           {children}
