@@ -9,7 +9,12 @@ An immutable React state management library with a simple mutable API, memoized 
 
 </div>
 
-<hr />
+## Overview
+
+The benefits of immutable state are clear, but maintaining that immutable state can sometimes be burdensome and verbose: updating a value more than one or two levels deep in your state tree can require lots of object/array spreading, and it's relatively easy to accidently mutate something.
+
+react-copy-write lets you use straightforward mutations to update an immutable state tree, thanks to [Immer](https://github.com/mweststrate/immer). Since Immer uses the [copy-on-write](https://en.wikipedia.org/wiki/Copy-on-write) technique to update immutable values, we get the benefits of structural sharing and memoization. This means react-copy-write not only lets you use simple mutations to update state, but it's also very efficient about re-rendering.
+
 
 ## Documentation
 
@@ -23,6 +28,7 @@ An immutable React state management library with a simple mutable API, memoized 
   - [Applying Multiple Selectors](#applying-multiple-selectors)
 - [Updating State](#updating-state)
   - [`createUpdater`](#createupdater)
+
 
 ## Installation
 
@@ -39,15 +45,22 @@ react-copy-write exports a function which takes your base state and returns an o
 ```js
 import createState from "react-copy-write";
 
+// You can namespace the components by accessing them as properties,
+// e.g., State.Provider / State.Consumer
 const State = createState({
   user: null,
   loggedIn: false
+});
+// Or destructure if you'd like
+const {Provider, Consumer} = createState({
+  user: null,
+  loggedIn: false,
 });
 ```
 
 ## Providing State
 
-As the name suggest, the Provider component is what provides the state. It will be initialized to the initial state passed to `createState`. The Provider component takes no props; just render it at the top-level of your application!
+The Provider component is what provides the state (crazy, right?). When the Provider component mounts the initial state will be whatever you passed to `createState`. The Provider component takes no props, and expects that all the associated Consumer components will be rendered as descendants.
 
 ```jsx
 class App extends React.Component {
@@ -61,9 +74,12 @@ class App extends React.Component {
 }
 ```
 
+You can only ever render a single instance of a given Provider. 
+
 ## Consuming State
 
-Consumer components let you _consume_ some portion of the state. By default that portion will be the entire state tree.
+Consumer components let you _consume_ or _observe_ some portion of the state. By default that portion will be all of the state.
+Lets look at this through a series of examples. Here we have a `UserAvatar` component, that wants to render an avatar for some given user.
 
 ```jsx
 const UserAvatar = ({ id }) => (
@@ -77,11 +93,11 @@ const UserAvatar = ({ id }) => (
 );
 ```
 
-In the case of `UserAvatar` it's only using a single field from state, but it's reading the entire state tree and accessing the value as a deeply nested property when it renders. The problem with this is that the Consumer component doesn't really know what values your using, so Consumers that read the whole state object will re-render anytime _any_ value changes.
+The `State.Consumer` component expects a render callback as a child, just like the React context consumer it wraps. That render callback will be called with the current state. The problem with this is that whenever any value in `state` changes, `UserAvatar` will be re-rendered, even though it's only using a single property from a single, nested object.
 
 ### Using Selectors
 
-Luckily, this is an easy problem to solve! Consumer components let you pass in a selector function, which takes the state tree and returns some slice of it that the consumer cares about. Refactor `UserAvatar`, we get:
+To avoid the problem of observing too much state, Consumer components let you pass in a selector function. A selector takes the current state and returns only the subset of that state that the Consumer cares about. Refactoring `UserAvatar`, we get:
 
 ```jsx
 const UserAvatar = ({ id }) => (
@@ -126,7 +142,7 @@ const UserPosts = ({ userId }) => (
 )
 ```
 
-Now those `Post` components will only re-render if `UserPosts` is re-rendered (a new `userID`) or if `state.posts` gets updated somewhere else. `selector` relies on referrential equality checks between renders, so avoid returning any new objects or arrays. Feel free to return primitive values like strings or numbers! Since `"foo" === "foo"` it doesn't matter that a new string or number is returned each time.
+Now those `Post` components will only re-render if `UserPosts` is re-rendered (a new `userID`) or if `state.posts` gets updated somewhere else. `selector` relies on referrential equality checks between renders, so avoid returning any new objects or arrays. Since it's relying on `===` feel free to return primitive values like strings or numbers which maintain that strict equality between instances.
 
 ### Composing Selectors
 
@@ -143,7 +159,7 @@ const UserPosts = () => (
 )
 ```
 
-This is just as bad as filtering in the selector, since a new object is returned each time. Your first thought to side-step this issue might be to use multiple consumers!
+This is just as bad as filtering in the selector, since a new object is returned each time. A naive solution (AKA, what I tried to do first) would be to nest Consumers.
 
 ```jsx
 const UserPosts = () => (
@@ -177,11 +193,11 @@ const UserPosts = () => (
 )
 ```
 
-Now the Consumer will re-render if any of the selectors return a new value. You might be wondering, why not map the results of the `selector` array to arguments in the render callback?
+Now the Consumer will re-render if any of the selectors return a new value.
 
 ## Updating State
 
-The render callback you pass as a child to Consumer components take a second argument; an `update` function that lets you mutate a _draft_ of the current state, processed by [Immer](https://github.com/mweststrate/immer) as an immutable state update. If you're wondering how you can get immutable state by mutating state, go check out the Immer repo's README.
+The render callback you pass as a child to Consumer components take a second argument; a `mutate` function that lets you mutate a _draft_ of the current state, processed by [Immer](https://github.com/mweststrate/immer) as an immutable state update. If you're wondering how you can get immutable state by mutating state, go check out the Immer repo's README.
 
 Let's start implementing that `Post` component we've been using:
 
@@ -202,22 +218,21 @@ const Post = ({ id }) => (
 );
 ```
 
-> You might have noticed that this running example is now a little contrived. We could just have passed the post data into the `Post` component in `UserPosts`. Just...ignore that.
-
-`Post` just renders a div with a title, an image, some text, and a button to "Praise". We want `post.praiseCount` to be incremented everytime that button is clicked
+`Post` just renders a div with a title, an image, some text, and a button to "Praise". We want `post.praiseCount` to be incremented everytime that button is clicked.
 
 ```jsx
 const Post = ({ id }) => (
   <div className="post">
     <State.Consumer selector={state => state.posts[id]}>
-      {(post, update) => (
+      {(post, mutate) => (
         <>
           <h1>{post.title}</h1>
           <img src={post.image} />
           <p>{post.body}</p>
           <button
             onClick={() =>
-              update(draft => {
+              // Here's the magic:
+              mutate(draft => {
                 draft.posts[id].praiseCount += 1;
               })
             }
@@ -231,14 +246,16 @@ const Post = ({ id }) => (
 );
 ```
 
-Just mutate the value you want to change, and an immutable state update will be processed. Only those Consumer components that were observing the `praiseCount` state will be re-rendered. Here's an example of a search bar.
+Mutate the value you want to change, and an immutable state update will be processed. Only those Consumer components that were observing the `praiseCount` state will be re-rendered. Here's another example; a simple search bar.
 
 ```jsx
 const SearchBar = () => (
   <div className="search-bar">
+    {/* Use a selector to only observe state.search */}
     <State.Consumer selector={state => state.search}>
-    {(search, update) => (
-      <input value={state} onChange={event => update(draft => {
+    {(search, mutate) => (
+      <input value={state} onChange={event => mutate(draft => {
+        // Update draft.search (which will end up being state.search) via mutation
         draft.search = event.currentTarget.value;
       })}>
     )}
@@ -247,14 +264,18 @@ const SearchBar = () => (
 )
 ```
 
-One downside of this API is that it's a little syntactically awakward to call `update` inline like that.
+One issue with `mutate` being provided via a render callback is that you now have to either inline the functions calling it in render, or pass it as a prop to another component to use it in another lifecycle.
 
-### `createUpdater`
+### `createMutator`
 
-The State object returned from `createState` also provides a method called `createUpdater`. Since it's also bound to the same state instance as the returned Provider and Consumer, you can use it to make state updates outside of render.
+The State object returned from `createState` also provides a method called `createMutator`. Since it's also bound to the same state instance as the returned Provider and Consumer, you can use it to make state updates outside of the render callback.
 
 ```jsx
-const setSearch = createUpdater((draft, event) => {
+const createMutator = State.createMutator;
+
+// Statically define your mutation method. If this were a class component, you
+// could define it as an instance property.
+const setSearch = createMutator((draft, event) => {
   const {value} = event.currentTarget;
   draft.search = value;
 });
