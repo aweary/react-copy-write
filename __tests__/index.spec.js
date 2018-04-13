@@ -136,10 +136,60 @@ describe("copy-on-write-store", () => {
     updater(draft => {
       draft.user.id = 5;
     });
-    // Shouldn't render Posts
+    // Shouldn't re-render Posts
     expect(log).toEqual([
       'Render User',
       'Render State'
     ]);
   });
+
+  it('supports multiple selectors', () => {
+    let log = [];
+    let updater;
+
+    const UserPosts = ({ children }) => (
+      <Consumer selector={[state => state.user.id, state => state.posts]}>
+        {([userID, posts]) => {
+          const userPosts = posts.filter(post => post.authorID === userID);
+          return children(userPosts);
+        }}
+      </Consumer>
+    );
+
+    class App extends React.Component {
+      render() {
+        return (
+          <Provider>
+           <div>
+             <UserPosts>
+              {posts => {
+                log.push(posts);
+                return null;
+              }}
+             </UserPosts>
+             <Consumer>
+              {(state, update) => {
+                log.push('Render Consumer');
+                updater = update;
+                return null;
+              }}
+             </Consumer>
+           </div>
+          </Provider>
+        )
+      }
+    }
+    render(<App />);
+    expect(log).toEqual([
+    // Assumes that only the second post is associated with the user
+      [baseState.posts[1]],
+      'Render Consumer'
+    ]);
+    log = [];
+    updater(draft => {
+      draft.loggedIn = false;
+    });
+    // Shouldn't have re-rendered UserPosts
+    expect(log).toEqual(['Render Consumer']);
+  })
 });
