@@ -8,7 +8,7 @@
     "flow": "flow",
     "test": "jest",
     "build": "babel src --out-dir lib",
-    "prepublish": "npm run build",
+    "prepare": "npm run build",
     "prettier": "prettier --write \"{src,__tests__}/**/*.js\""
   },
   "dependencies": {
