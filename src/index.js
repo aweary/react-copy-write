@@ -106,8 +106,14 @@ export default function createCopyOnWriteState<T>(baseState: T) {
     // This simpler than using PureComponent; we don't
     // need to do a shallowEquals check since we rely on
     // referential equality thanks to immer's structural sharing
-    shouldComponentUpdate(nextProps) {
-      return this.props.state !== nextProps.state;
+    shouldComponentUpdate({ state }: { state: ObservedState<S> }) {
+      if (Array.isArray(state)) {
+        // Assumes that if nextProps.state is an array, then the this.props.state is also
+        // an array.
+        const currentState = ((this.props.state : any) : Array<S>);
+        return state.some((observedState, i) => observedState !== currentState[i]);
+      }
+      return this.props.state !== state;
     }
 
     render() {
