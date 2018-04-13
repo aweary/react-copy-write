@@ -151,7 +151,7 @@ In some cases, deriving state involves reading from other parts of your state. M
 ```jsx
 const UserPosts = () => (
   <State.Consumer selector={state => ({ posts: state.posts, userId: state.user.id }}>
-   {{posts, userId} => {
+   {({posts, userId}) => {
      const filteredPosts = posts.filter(post => post.id === userId)
      return posts.map(post => <Post id={post.id} />)
    }
