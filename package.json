@@ -1,5 +1,5 @@
 {
-  "name": "copy-on-write-store",
+  "name": "react-copy-write",
   "version": "0.0.1-0",
   "main": "lib/index.js",
   "author": "Brandon Dail <brandondail@fb.com>",
