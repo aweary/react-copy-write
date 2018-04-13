@@ -7,6 +7,8 @@
 
 An immutable React state management library with a simple mutable API, memoized selectors, and structural sharing. Powered by [Immer](https://github.com/mweststrate/immer).
 
+[Check out this small demo.](https://codesandbox.io/s/yp34vpk50j)
+
 </div>
 
 ## Overview
