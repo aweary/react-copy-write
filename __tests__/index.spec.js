@@ -4,6 +4,7 @@ import createStore from "../src";
 
 let Provider;
 let Consumer;
+let createMutator;
 
 const baseState = {
   search: "",
@@ -36,6 +37,7 @@ describe("copy-on-write-store", () => {
     const State = createStore(baseState);
     Provider = State.Provider;
     Consumer = State.Consumer;
+    createMutator = State.createMutator;
   });
 
   it("passes in state and an updater", () => {
@@ -184,5 +186,36 @@ describe("copy-on-write-store", () => {
     });
     // Shouldn't have re-rendered UserPosts
     expect(log).toEqual(["Render Consumer"]);
+  });
+
+  it('createMutator', () => {
+    let log = [];
+
+    const updateUserHandle = createMutator((draft, newHandle) => {
+      draft.user.handle = newHandle;
+    });
+
+    class App extends React.Component {
+      render() {
+        return (
+          <Provider>
+           <div>
+            <Consumer selector={state => state.user.handle}>
+              {handle => {
+                log.push(handle);
+                return null;
+              }}
+            </Consumer> 
+           </div>
+          </Provider>
+        )
+      }
+    }
+
+    render(<App />);
+    expect(log).toEqual(['happylittlemistake']);
+    log = [];
+    updateUserHandle('sadbigdecisions');
+    expect(log).toEqual(['sadbigdecisions']);
   });
 });

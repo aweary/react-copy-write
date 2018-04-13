@@ -72,8 +72,17 @@ export default function createCopyOnWriteState<T>(baseState: T) {
     }
   }
 
-  function createMutator(fn: UpdateFn<T>) {
-    return () => update(fn);
+  /**
+   * createMutator lets you create a mutator function that is similar
+   * to calling mutate(...) directly, except you can define it statically,
+   * and have any additional arguments forwarded.
+   */
+  function createMutator(fn: UpdateFn<T>)  {
+    return (...args: mixed[]) => {
+      update(draft => {
+        fn(draft, ...args);
+      })
+    }
   }
 
   class CopyOnWriteStoreProvider extends React.Component<
