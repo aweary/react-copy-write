@@ -17,20 +17,18 @@ The benefits of immutable state are clear, but maintaining that immutable state 
 
 react-copy-write lets you use straightforward mutations to update an immutable state tree, thanks to [Immer](https://github.com/mweststrate/immer). Since Immer uses the [copy-on-write](https://en.wikipedia.org/wiki/Copy-on-write) technique to update immutable values, we get the benefits of structural sharing and memoization. This means react-copy-write not only lets you use simple mutations to update state, but it's also very efficient about re-rendering.
 
-
 ## Documentation
 
-- [Installation](#installation)
-- [Getting Started](#getting-started)
-- [Providing State](#providing-state)
-- [Consuming State](#consuming-state)
-  - [Using Selectors](#using-selectors)
-  - [Deriving State in Selectors](#deriving-state-in-selectors)
-  - [Composing Selectors](#composing-selectors)
-  - [Applying Multiple Selectors](#applying-multiple-selectors)
-- [Updating State](#updating-state)
-  - [`createUpdater`](#createupdater)
-
+* [Installation](#installation)
+* [Getting Started](#getting-started)
+* [Providing State](#providing-state)
+* [Consuming State](#consuming-state)
+  * [Using Selectors](#using-selectors)
+  * [Deriving State in Selectors](#deriving-state-in-selectors)
+  * [Composing Selectors](#composing-selectors)
+  * [Applying Multiple Selectors](#applying-multiple-selectors)
+* [Updating State](#updating-state)
+  * [`createUpdater`](#createupdater)
 
 ## Installation
 
@@ -54,9 +52,9 @@ const State = createState({
   loggedIn: false
 });
 // Or destructure if you'd like
-const {Provider, Consumer} = createState({
+const { Provider, Consumer } = createState({
   user: null,
-  loggedIn: false,
+  loggedIn: false
 });
 ```
 
@@ -76,7 +74,7 @@ class App extends React.Component {
 }
 ```
 
-You can only ever render a single instance of a given Provider. 
+You can only ever render a single instance of a given Provider.
 
 ## Consuming State
 
@@ -255,15 +253,20 @@ const SearchBar = () => (
   <div className="search-bar">
     {/* Use a selector to only observe state.search */}
     <State.Consumer selector={state => state.search}>
-    {(search, mutate) => (
-      <input value={state} onChange={event => mutate(draft => {
-        // Update draft.search (which will end up being state.search) via mutation
-        draft.search = event.currentTarget.value;
-      })}/>
-    )}
+      {(search, mutate) => (
+        <input
+          value={state}
+          onChange={event =>
+            mutate(draft => {
+              // Update draft.search (which will end up being state.search) via mutation
+              draft.search = event.currentTarget.value;
+            })
+          }
+        />
+      )}
     </State.Consumer>
   </div>
-)
+);
 ```
 
 One issue with `mutate` being provided via a render callback is that you now have to either inline the functions calling it in render, or pass it as a prop to another component to use it in another lifecycle.
