@@ -13,17 +13,16 @@ An immutable React state management library with a simple mutable API, memoized 
 
 ## Documentation
 
-* [Installation](#installation)
-* [Getting Started](#getting-started)
-* [Providing State](#providing-state)
-* [Consuming State](#consuming-state)
-  * [Using Selectors](#using-selectors)
-  * [Deriving State in Selectors](#deriving-state-in-selectors)
-  * [Composing Selectors](#composing-selectors)
-  * [Applying Multiple Selectors](#applying-multiple-selectors)
-* [Updating State](#updating-state)
-
-  * [`createUpdater`](#createupdater)
+- [Installation](#installation)
+- [Getting Started](#getting-started)
+- [Providing State](#providing-state)
+- [Consuming State](#consuming-state)
+  - [Using Selectors](#using-selectors)
+  - [Deriving State in Selectors](#deriving-state-in-selectors)
+  - [Composing Selectors](#composing-selectors)
+  - [Applying Multiple Selectors](#applying-multiple-selectors)
+- [Updating State](#updating-state)
+  - [`createUpdater`](#createupdater)
 
 ## Installation
 
