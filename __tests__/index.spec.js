@@ -61,7 +61,7 @@ describe("copy-on-write-store", () => {
     render(<App />);
     // First render is the base state
     expect(log).toEqual([baseState]);
-    expect(typeof updater).toBe('function');
+    expect(typeof updater).toBe("function");
   });
 
   it("updates state", () => {
@@ -96,7 +96,7 @@ describe("copy-on-write-store", () => {
     expect(log[0].posts).toEqual(log[1].posts);
   });
 
-  it('memoizes selectors', () => {
+  it("memoizes selectors", () => {
     let log = [];
     let updater;
     class App extends React.Component {
@@ -105,45 +105,38 @@ describe("copy-on-write-store", () => {
           <Provider>
             <Consumer selector={state => state.user}>
               {(user, update) => {
-                log.push('Render User');
+                log.push("Render User");
                 updater = update;
                 return null;
               }}
             </Consumer>
             <Consumer selector={state => state.posts}>
-              {(posts) => {
-                log.push('Render Posts');
+              {posts => {
+                log.push("Render Posts");
                 return null;
               }}
             </Consumer>
             <Consumer selector={state => state}>
-             {state => {
-               log.push('Render State');
-               return null;
-             }}
+              {state => {
+                log.push("Render State");
+                return null;
+              }}
             </Consumer>
           </Provider>
-        )
+        );
       }
     }
     render(<App />);
-    expect(log).toEqual([
-      'Render User',
-      'Render Posts',
-      'Render State'
-    ]);
+    expect(log).toEqual(["Render User", "Render Posts", "Render State"]);
     log = [];
     updater(draft => {
       draft.user.id = 5;
     });
     // Shouldn't re-render Posts
-    expect(log).toEqual([
-      'Render User',
-      'Render State'
-    ]);
+    expect(log).toEqual(["Render User", "Render State"]);
   });
 
-  it('supports multiple selectors', () => {
+  it("supports multiple selectors", () => {
     let log = [];
     let updater;
 
@@ -160,36 +153,36 @@ describe("copy-on-write-store", () => {
       render() {
         return (
           <Provider>
-           <div>
-             <UserPosts>
-              {posts => {
-                log.push(posts);
-                return null;
-              }}
-             </UserPosts>
-             <Consumer>
-              {(state, update) => {
-                log.push('Render Consumer');
-                updater = update;
-                return null;
-              }}
-             </Consumer>
-           </div>
+            <div>
+              <UserPosts>
+                {posts => {
+                  log.push(posts);
+                  return null;
+                }}
+              </UserPosts>
+              <Consumer>
+                {(state, update) => {
+                  log.push("Render Consumer");
+                  updater = update;
+                  return null;
+                }}
+              </Consumer>
+            </div>
           </Provider>
-        )
+        );
       }
     }
     render(<App />);
     expect(log).toEqual([
-    // Assumes that only the second post is associated with the user
+      // Assumes that only the second post is associated with the user
       [baseState.posts[1]],
-      'Render Consumer'
+      "Render Consumer"
     ]);
     log = [];
     updater(draft => {
       draft.loggedIn = false;
     });
     // Shouldn't have re-rendered UserPosts
-    expect(log).toEqual(['Render Consumer']);
-  })
+    expect(log).toEqual(["Render Consumer"]);
+  });
 });
