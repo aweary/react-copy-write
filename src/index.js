@@ -1,8 +1,16 @@
 /**
- * This provides a copy-on-write, immutable state for React solution powered
- * by immer and React.createContext. Thanks to immer's copy-on-write API and
- * structural sharing, we can provide a simple mutable API while maintaing
- * an immutable store behind the scenes.
+ *                       _                                                    _ _       
+ *                      | |                                                  (_| |      
+ *   _ __ ___  __ _  ___| |_ ______ ___ ___  _ __  _   _ ________      ___ __ _| |_ ___ 
+ *  | '__/ _ \/ _` |/ __| __|______/ __/ _ \| '_ \| | | |______\ \ /\ / | '__| | __/ _ \
+ *  | | |  __| (_| | (__| |_      | (_| (_) | |_) | |_| |       \ V  V /| |  | | ||  __/
+ *  |_|  \___|\__,_|\___|\__|      \___\___/| .__/ \__, |        \_/\_/ |_|  |_|\__\___|
+ *                                          | |     __/ |                               
+ *                                          |_|    |___/        
+ *                         
+ * Provides a mutable API with immutable state for React. Powered
+ * by immer and React.createContext. 
+ * 
  * @flow
  */
 import React, { Component } from "react";
@@ -15,19 +23,21 @@ type UpdateFn<T> = T => void;
 type Updater<T> = (UpdateFn<T>) => void;
 
 type ObservedState<S> = S | Array<S>;
-// The callback passed to consumers accept the state and the
-// update function, and return a React.Node to render. If the user
-// defines a selector, the state will be whatever they return from the selector 
-// (Ideally that would just be some subset of T). The updater function is always
-// called with the entire state tree.
+/**
+ * The callback passed to consumers accept the state and the
+ * update function, and return a React.Node to render. If the user
+ * defines a selector, the state will be whatever they return from the selector 
+ *  which should just be some subset of T. The updater function is always
+ * called with the entire state tree.
+ */
 type ConsumerCallback<T, S> = (ObservedState<S>, Updater<T>) => React$Node;
 
 /**
  * A selector can either be a simple selector, which just makes the base state to
  * some subset of that current state, or it can be an array of simple selectors which
- * also map the current state to some hetrogenous subsets of that current state. 
+ * also map the current state to some hetrogenous subsets of that current state. This
+ * is defined by ObservedState.
  */
-
 type Selector<T, S> = T => ObservedState<S>;
   
 
@@ -37,15 +47,16 @@ function identityFn<T>(n: T): T {
 }
 
 export default function createCopyOnWriteState<T>(baseState: T) {
-  // The current state is managed by a closure, shared by the consumers and
-  // the provider. The consumers still respect the provider/consumer contract
-  // that React context enforces, by only accessing state in the consumer.
+  /**
+   * The current state is stored in a closure, shared by the consumers and
+   * the provider. Consumers still respect the Provider/Consumer contract
+   * that React context enforces, by only accessing state in the consumer. 
+   */
   let currentState: T = baseState;
   let providerListener = null;
-  // The React context for propagating state and updaters
   // $FlowFixMe React.createContext exists now
   const State = React.createContext(baseState);
-  // Wraps immer's produce utility. Only notify the Provider
+  // Wraps immer's produce. Only notifies the Provider
   // if the returned draft has been changed.
   function update(fn: UpdateFn<T>) {
     invariant(
@@ -66,7 +77,6 @@ export default function createCopyOnWriteState<T>(baseState: T) {
     return () => update(fn);
   }
 
-  // Wrapper around State.Provider
   class CopyOnWriteStoreProvider extends React.Component<
     { children: React$Node },
     T
@@ -103,9 +113,6 @@ export default function createCopyOnWriteState<T>(baseState: T) {
     children: ConsumerCallback<T, S>,
     state: ObservedState<S>, 
   }> {
-    // This simpler than using PureComponent; we don't
-    // need to do a shallowEquals check since we rely on
-    // referential equality thanks to immer's structural sharing
     shouldComponentUpdate({ state }: { state: ObservedState<S> }) {
       if (Array.isArray(state)) {
         // Assumes that if nextProps.state is an array, then the this.props.state is also
@@ -152,9 +159,11 @@ export default function createCopyOnWriteState<T>(baseState: T) {
     }
   }
 
-  // A mutator is like a consumer, except that it doesn't actually use any
-  // of the state. It's used for cases where a component wants to update some
-  // state, but doesn't care about what the current state is
+  /** 
+  * A mutator is like a consumer, except that it doesn't actually use any
+  * of the state. It's used for cases where a component wants to update some
+  * state, but doesn't care about what the current state is
+  */
   class CopyOnWriteMutator extends React.Component<{
     children: (Updater<T>) => React$Node
   }> {
