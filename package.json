@@ -1,7 +1,7 @@
 {
   "name": "copy-on-write-store",
-  "version": "0.1.0",
-  "main": "src/index.js",
+  "version": "0.0.0",
+  "main": "lib/index.js",
   "author": "Brandon Dail <brandondail@fb.com>",
   "license": "MIT",
   "scripts": {
