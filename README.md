@@ -11,6 +11,20 @@ An immutable React state management library with a simple mutable API, memoized 
 
 <hr />
 
+## Documentation
+
+* [Installation](#installation)
+* [Getting Started](#getting-started)
+* [Providing State](#providing-state)
+* [Consuming State](#consuming-state)
+  * [Using Selectors](#using-selectors)
+  * [Deriving State in Selectors](#deriving-state-in-selectors)
+  * [Composing Selectors](#composing-selectors)
+  * [Applying Multiple Selectors](#applying-multiple-selectors)
+* [Updating State](#updating-state)
+
+  * [`createUpdater`](#createupdater)
+
 ## Installation
 
 react-copy-write requires React 16.3 or later, as it depends on the new `React.createContext` API.
@@ -48,7 +62,7 @@ class App extends React.Component {
 }
 ```
 
-## `State.Consumer`
+## Consuming State
 
 Consumer components let you _consume_ some portion of the state. By default that portion will be the entire state tree.
 
@@ -166,7 +180,6 @@ const UserPosts = () => (
 
 Now the Consumer will re-render if any of the selectors return a new value. You might be wondering, why not map the results of the `selector` array to arguments in the render callback?
 
-
 ## Updating State
 
 The render callback you pass as a child to Consumer components take a second argument; an `update` function that lets you mutate a _draft_ of the current state, processed by [Immer](https://github.com/mweststrate/immer) as an immutable state update. If you're wondering how you can get immutable state by mutating state, go check out the Immer repo's README.
@@ -177,38 +190,46 @@ Let's start implementing that `Post` component we've been using:
 const Post = ({ id }) => (
   <div className="post">
     <State.Consumer selector={state => state.posts[id]}>
-     {post => (
-       <>
-        <h1>{post.title}</h1>
-        <img src={post.image}/>
-        <p>{post.body}</p>
-        <button>Praise</button>
-       </>
-     )}
+      {post => (
+        <>
+          <h1>{post.title}</h1>
+          <img src={post.image} />
+          <p>{post.body}</p>
+          <button>Praise</button>
+        </>
+      )}
     </State.Consumer>
   </div>
-)
+);
 ```
+
 > You might have noticed that this running example is now a little contrived. We could just have passed the post data into the `Post` component in `UserPosts`. Just...ignore that.
 
 `Post` just renders a div with a title, an image, some text, and a button to "Praise". We want `post.praiseCount` to be incremented everytime that button is clicked
+
 ```jsx
 const Post = ({ id }) => (
   <div className="post">
     <State.Consumer selector={state => state.posts[id]}>
-     {(post, update) => (
-       <>
-        <h1>{post.title}</h1>
-        <img src={post.image}/>
-        <p>{post.body}</p>
-        <button onClick={() => update(draft => {
-          draft.posts[id].praiseCount += 1;
-        })}>Praise</button>
-       </>
-     )}
+      {(post, update) => (
+        <>
+          <h1>{post.title}</h1>
+          <img src={post.image} />
+          <p>{post.body}</p>
+          <button
+            onClick={() =>
+              update(draft => {
+                draft.posts[id].praiseCount += 1;
+              })
+            }
+          >
+            Praise
+          </button>
+        </>
+      )}
     </State.Consumer>
   </div>
-)
+);
 ```
 
 Just mutate the value you want to change, and an immutable state update will be processed. Only those Consumer components that were observing the `praiseCount` state will be re-rendered. Here's an example of a search bar.
@@ -229,7 +250,7 @@ const SearchBar = () => (
 
 One downside of this API is that it's a little syntactically awakward to call `update` inline like that.
 
-### createUpdater
+### `createUpdater`
 
 The State object returned from `createState` also provides a method called `createUpdater`. Since it's also bound to the same state instance as the returned Provider and Consumer, you can use it to make state updates outside of render.
 
