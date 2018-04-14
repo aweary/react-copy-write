@@ -289,7 +289,7 @@ const SearchBar = () => (
   <div className="search-bar">
     <State.Consumer selector={state => state.search}>
     {(search) => (
-      <input value={state} onChange={setSearch}>
+      <input value={state} onChange={setSearch} />
     )}
     </State.Consumer>
   </div>
