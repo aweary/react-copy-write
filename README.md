@@ -38,7 +38,7 @@ react-copy-write requires React 16.3 or later, as it depends on the new `React.c
 yarn add react-copy-write
 ```
 
-## Getting Starded
+## Getting Started
 
 react-copy-write exports a function which takes your base state and returns an object with Provider and Consumer components, along with a few other utility methods. You can use a single state instance for your entire app, or create multiple different independant state instances that interleave throughout your app.
 
