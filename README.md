@@ -34,7 +34,7 @@ react-copy-write lets you use straightforward mutations to update an immutable s
   * [Composing Selectors](#composing-selectors)
   * [Applying Multiple Selectors](#applying-multiple-selectors)
 * [Updating State](#updating-state)
-  * [`createUpdater`](#createupdater)
+  * [`createMutator`](#createmutator)
 
 ## Installation
 
