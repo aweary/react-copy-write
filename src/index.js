@@ -122,7 +122,7 @@ export default function createCopyOnWriteState<T>(baseState: T) {
     }
     // This selector was never optimized. It's likely in the queue, waiting to
     // be optimized. Ignore it for now.
-    if (optimizedSelectors.has(selector)) {
+    if (!optimizedSelectors.has(selector)) {
       return;
     }
     let referenceCount = selectorReferenceCount.get(selector);
