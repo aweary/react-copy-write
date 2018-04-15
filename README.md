@@ -9,6 +9,12 @@ An immutable React state management library with a simple mutable API, memoized 
 
 [Check out this small demo.](https://codesandbox.io/s/yp34vpk50j)
 
+[![Build Status](https://travis-ci.com/aweary/react-copy-write.svg?branch=master)](https://travis-ci.com/aweary/react-copy-write) 
+[![npm](https://img.shields.io/npm/v/react-copy-write.svg)](https://www.npmjs.com/package/react-copy-write) 
+[![license](https://img.shields.io/github/license/mashape/apistatus.svg)](https://github.com/aweary/react-copy-write/blob/master/LICENSE)
+
+
+
 </div>
 
 ## Overview
