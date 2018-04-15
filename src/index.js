@@ -54,7 +54,7 @@ function getObservedBitsForSelector(selector): number {
   if (typeof selector.observedBits === "number") {
     return selector.observedBits;
   }
-  return MAX_SIGNED_31_BIT_INT;
+  return DEOPTIMIZED_SELECTOR;
 }
 
 function getObservedBits<T, S>(selector: Selector<T, S>): number {
@@ -100,7 +100,7 @@ export default function createCopyOnWriteState<T>(baseState: T) {
     }
     let referenceCount = selectorReferenceCount.get(selector) || 0;
     selectorReferenceCount.set(selector, referenceCount + 1);
-    if (selector.observedBits !== MAX_SIGNED_31_BIT_INT) {
+    if (selector.observedBits !== DEOPTIMIZED_SELECTOR) {
       // This selector is already optimized
       return;
     }
