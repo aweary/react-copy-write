@@ -1,5 +1,5 @@
 <div align="center">
-<h1>react-copy-write</h1>
+<h1></h1>
 
 <a href="https://emojipedia.org/writing-hand/">
 <img height="80" width="80" alt="goat" src="https://emojipedia-us.s3.amazonaws.com/thumbs/240/twitter/131/writing-hand_270d.png" />
