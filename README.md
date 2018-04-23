@@ -261,7 +261,7 @@ const SearchBar = () => (
     <State.Consumer selector={state => state.search}>
       {(search, mutate) => (
         <input
-          value={state}
+          value={search}
           onChange={event =>
             mutate(draft => {
               // Update draft.search (which will end up being state.search) via mutation
