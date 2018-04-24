@@ -66,7 +66,7 @@ const { Provider, Consumer } = createState({
 
 ## Providing State
 
-The Provider component is what provides the state (crazy, right?). When the Provider component mounts the initial state will be whatever you passed to `createState`. The Provider component takes no props, and expects that all the associated Consumer components will be rendered as descendants.
+The Provider component is what provides the state (crazy, right?). When the Provider component mounts, the initial state will be whatever you passed to `createState`. The Provider component takes no props, and expects that all the associated Consumer components will be rendered as descendants.
 
 ```jsx
 class App extends React.Component {
