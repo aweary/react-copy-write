@@ -63,7 +63,7 @@ export default function createCopyOnWriteState<T>(baseState: T) {
       `update(...): you cannot call update when no CopyOnWriteStoreProvider ` +
         `instance is mounted. Make sure to wrap your consumer components with ` +
         `the returned Provider, and/or delay your update calls until the component ` +
-        `tree is moutned.`
+        `tree is mounted.`
     );
     const nextState = produce(currentState, fn);
     if (nextState !== currentState) {
