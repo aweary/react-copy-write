@@ -46,8 +46,8 @@ function identityFn<T>(n: T): T {
 }
 
 function Store<T>(baseState: T) {
-  let state:T = baseState;
-  function getState():T {
+  let state: T = baseState;
+  function getState(): T {
     return state;
   }
   function setState(newState: T) {
@@ -56,10 +56,13 @@ function Store<T>(baseState: T) {
   return {
     getState,
     setState
-  }
+  };
 }
 
-export default function createCopyOnWriteState<T>(baseState: T, middlewares = []) {
+export default function createCopyOnWriteState<T>(
+  baseState: T,
+  middlewares = []
+) {
   /**
    * The current state is stored in a closure, shared by the consumers and
    * the provider. Consumers still respect the Provider/Consumer contract
@@ -71,24 +74,22 @@ export default function createCopyOnWriteState<T>(baseState: T, middlewares = []
   // $FlowFixMe React.createContext exists now
   const State = React.createContext(baseState);
 
-  const updateMiddleWare = getState => next => {
-    console.log('update middleware')
-    return (fn) => {
+  const updateMiddleWare = getState => next => fn => {
     const state = getState();
     const nextState = next(state, fn);
     if (nextState !== state) {
       store.setState(nextState);
       providerListener();
     }
-  }}
+  };
 
   let chainedProduce = produce;
-  middlewares = middlewares.concat(updateMiddleWare)
-  middlewares = middlewares.slice()
+  middlewares = middlewares.concat(updateMiddleWare);
+  middlewares = middlewares.slice();
   middlewares.reverse();
-  middlewares.forEach(middleware =>
-    chainedProduce = middleware(store.getState)(chainedProduce)
-  )
+  middlewares.forEach(
+    middleware => (chainedProduce = middleware(store.getState)(chainedProduce))
+  );
 
   // Wraps immer's produce. Only notifies the Provider
   // if the returned draft has been changed.
@@ -96,9 +97,9 @@ export default function createCopyOnWriteState<T>(baseState: T, middlewares = []
     invariant(
       providerListener !== null,
       `update(...): you cannot call update when no CopyOnWriteStoreProvider ` +
-      `instance is mounted. Make sure to wrap your consumer components with ` +
-      `the returned Provider, and/or delay your update calls until the component ` +
-      `tree is mounted.`
+        `instance is mounted. Make sure to wrap your consumer components with ` +
+        `the returned Provider, and/or delay your update calls until the component ` +
+        `tree is mounted.`
     );
     chainedProduce(fn);
   }
@@ -112,21 +113,21 @@ export default function createCopyOnWriteState<T>(baseState: T, middlewares = []
     return (...args: mixed[]) => {
       update(draft => {
         fn(draft, ...args);
-      })
-    }
+      });
+    };
   }
 
   class CopyOnWriteStoreProvider extends React.Component<
     { children: React$Node },
     T
-    > {
+  > {
     state = baseState;
 
     componentDidMount() {
       invariant(
         providerListener === null,
         `CopyOnWriteStoreProvider(...): There can only be a single ` +
-        `instance of a provider rendered at any given time.`
+          `instance of a provider rendered at any given time.`
       );
       providerListener = this.updateState;
     }
@@ -165,60 +166,60 @@ export default function createCopyOnWriteState<T>(baseState: T, middlewares = []
     }
 
     render() {
-      const {children, state } = this.props;
-          return children(state, update);
-        }
-      }
+      const { children, state } = this.props;
+      return children(state, update);
+    }
+  }
 
   class CopyOnWriteConsumer<S> extends React.Component<{
     selector: Selector<T, S>,
     children: ConsumerCallback<T, S>
   }> {
-              static defaultProps = {
-              selector: identityFn
-          };
+    static defaultProps = {
+      selector: identityFn
+    };
 
     getObservedState(state: T, selectors: Selector<T, S>): ObservedState<S> {
       if (Array.isArray(selectors)) {
         return selectors.map(fn => fn(state));
-            }
-            return selectors(state);
-          }
+      }
+      return selectors(state);
+    }
 
     consumer = (state: T) => {
-      const {children, selector } = this.props;
-              const observedState = this.getObservedState(state, selector);
-              return (
+      const { children, selector } = this.props;
+      const observedState = this.getObservedState(state, selector);
+      return (
         <ConusmerIndirection state={observedState}>
-                {children}
-              </ConusmerIndirection>
-              );
-            };
+          {children}
+        </ConusmerIndirection>
+      );
+    };
 
     render() {
       return <State.Consumer>{this.consumer}</State.Consumer>;
-            }
-          }
+    }
+  }
 
-          /**
-           * A mutator is like a consumer, except that it doesn't actually use any
-           * of the state. It's used for cases where a component wants to update some
-           * state, but doesn't care about what the current state is
-           */
+  /**
+   * A mutator is like a consumer, except that it doesn't actually use any
+   * of the state. It's used for cases where a component wants to update some
+   * state, but doesn't care about what the current state is
+   */
   class CopyOnWriteMutator extends React.Component<{
     children: (Updater<T>) => React$Node
   }> {
-                  render() {
-                return this.props.children(update);
-              }
-            }
+    render() {
+      return this.props.children(update);
+    }
+  }
 
   return {
-                  Provider: CopyOnWriteStoreProvider,
-                Consumer: CopyOnWriteConsumer,
-                Mutator: CopyOnWriteMutator,
-                update,
-                createMutator,
-                getState: store.getState
-              };
-            }
+    Provider: CopyOnWriteStoreProvider,
+    Consumer: CopyOnWriteConsumer,
+    Mutator: CopyOnWriteMutator,
+    update,
+    createMutator,
+    getState: store.getState
+  };
+}
