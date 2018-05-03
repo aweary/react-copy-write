@@ -82,26 +82,6 @@ function getObservedBits<T, S>(selector: Selector<T, S>): number {
     : getObservedBitsForSelector(selector);
 }
 
-/**
- * Used to determine which queued selector can be optimized. Currently runs in O(n)
- * where n is the number of queued selectors. Ideally there should never be more than
- * a few dozen optimized selectors, but it's possible users might create 100s or 1000s
- * if they're defining the selector as an instance property. With that in mind, it might
- * be worth using a priority heap to get O(log n) performance.
- */
-function getHighestPrioritySelector(queue, referenceCountMap) {
-  let highestReferenceCount = 0;
-  let prioritizedSelector;
-  for (let i = 0; i < queue.length; i++) {
-    const selector = queue[i];
-    const referenceCount = referenceCountMap.get(selector);
-    if (referenceCount > highestReferenceCount) {
-      highestReferenceCount = referenceCount;
-      prioritizedSelector = selector;
-    }
-  }
-}
-
 export default function createCopyOnWriteState<T>(baseState: T) {
   const queue = new OptimizationQueue();
 
