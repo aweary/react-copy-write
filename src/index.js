@@ -117,7 +117,7 @@ export default function createCopyOnWriteState<T>(baseState: T) {
     }
   }
 
-  class ConusmerIndirection<S> extends React.Component<{
+  class ConsumerIndirection<S> extends React.Component<{
     children: ConsumerCallback<T, S>,
     state: ObservedState<S>
   }> {
@@ -158,9 +158,9 @@ export default function createCopyOnWriteState<T>(baseState: T) {
       const { children, selector } = this.props;
       const observedState = this.getObservedState(state, selector);
       return (
-        <ConusmerIndirection state={observedState}>
+        <ConsumerIndirection state={observedState}>
           {children}
-        </ConusmerIndirection>
+        </ConsumerIndirection>
       );
     };
 
