@@ -12,10 +12,13 @@
  * by immer and React.createContext.
  *
  * @flow
+ * @format
  */
-import React, { Component } from "react";
-import produce from "immer";
-import invariant from "invariant";
+import React, {Component} from 'react';
+import produce from 'immer';
+import invariant from 'invariant';
+
+import OptimizationQueue from './OptimizationQueue.js';
 
 // Update functions take the current state, mutate it, and return nothing (undefined)
 type UpdateFn<T> = T => void;
@@ -39,13 +42,64 @@ type ConsumerCallback<T, S> = (ObservedState<S>, Updater<T>) => React$Node;
  * is defined by ObservedState.
  */
 type Selector<T, S> = T => ObservedState<S>;
+type OptimizedSelector<T, S> = {id: number, fn: Selector<T, S>};
+
+/**
+ * If a selector is observing DEOPTIMIZED_SELECTOR, it will always
+ * update the consumer
+ */
+const DEOPTIMIZED_SELECTOR = 1;
 
 // The default selector is the identity function
 function identityFn<T>(n: T): T {
   return n;
 }
 
+function createSelector<S>(fn: T => S) {
+  // When an optimized selector is created, it isn't initially optimized.
+  // Once it's actually used in a Consumer that mounts, observedBits will be updated
+  // with a bit flag popped off the selectorBits stack. If selectorBits is empty,
+  // that indicates there are already 30 optimized selectors in use, in which case this
+  // selector will be treated as unoptimized. It will be added to a queue of optimizable selectors
+  // that are waiting for some other selector to unmount.
+  fn.observedBits = DEOPTIMIZED_SELECTOR;
+  return fn;
+}
+
+function getObservedBitsForSelector(selector): number {
+  if (typeof selector.observedBits === 'number') {
+    return selector.observedBits;
+  }
+  return DEOPTIMIZED_SELECTOR;
+}
+
+function getObservedBits<T, S>(selector: Selector<T, S>): number {
+  return Array.isArray(selector)
+    ? selector.reduce(
+        (bits, selector) => bits | getObservedBitsForSelector(selector),
+        0,
+      )
+    : getObservedBitsForSelector(selector);
+}
+
 export default function createCopyOnWriteState<T>(baseState: T) {
+  const queue = new OptimizationQueue();
+
+  function optimizeSelector(selector) {
+    if (typeof selector.observedBits !== 'number') {
+      // An unknown selector, we can never optimize these. Ignore it.
+      return;
+    }
+    queue.reference(selector);
+  }
+
+  function deoptimizeSelector(selector) {
+    if (typeof selector.observedBits !== 'number') {
+      return;
+    }
+    queue.dereference(selector);
+  }
+
   /**
    * The current state is stored in a closure, shared by the consumers and
    * the provider. Consumers still respect the Provider/Consumer contract
@@ -54,7 +108,16 @@ export default function createCopyOnWriteState<T>(baseState: T) {
   let currentState: T = baseState;
   let providerListener = null;
   // $FlowFixMe React.createContext exists now
-  const State = React.createContext(baseState);
+  const State = React.createContext(baseState, (stale: T, current: T) => {
+    let changedBits = DEOPTIMIZED_SELECTOR;
+    queue.forEach((bits, selector) => {
+      if (selector(stale) !== selector(current)) {
+        changedBits |= bits;
+      }
+    });
+    return changedBits;
+  });
+
   // Wraps immer's produce. Only notifies the Provider
   // if the returned draft has been changed.
   function update(fn: UpdateFn<T>) {
@@ -63,7 +126,7 @@ export default function createCopyOnWriteState<T>(baseState: T) {
       `update(...): you cannot call update when no CopyOnWriteStoreProvider ` +
         `instance is mounted. Make sure to wrap your consumer components with ` +
         `the returned Provider, and/or delay your update calls until the component ` +
-        `tree is moutned.`
+        `tree is moutned.`,
     );
     const nextState = produce(currentState, fn);
     if (nextState !== currentState) {
@@ -77,17 +140,17 @@ export default function createCopyOnWriteState<T>(baseState: T) {
    * to calling mutate(...) directly, except you can define it statically,
    * and have any additional arguments forwarded.
    */
-  function createMutator(fn: UpdateFn<T>)  {
+  function createMutator(fn: UpdateFn<T>) {
     return (...args: mixed[]) => {
       update(draft => {
         fn(draft, ...args);
-      })
-    }
+      });
+    };
   }
 
   class CopyOnWriteStoreProvider extends React.Component<
-    { children: React$Node },
-    T
+    {children: React$Node},
+    T,
   > {
     state = baseState;
 
@@ -95,7 +158,7 @@ export default function createCopyOnWriteState<T>(baseState: T) {
       invariant(
         providerListener === null,
         `CopyOnWriteStoreProvider(...): There can only be a single ` +
-          `instance of a provider rendered at any given time.`
+          `instance of a provider rendered at any given time.`,
       );
       providerListener = this.updateState;
     }
@@ -119,43 +182,36 @@ export default function createCopyOnWriteState<T>(baseState: T) {
 
   class ConsumerIndirection<S> extends React.Component<{
     children: ConsumerCallback<T, S>,
-    state: ObservedState<S>
+    state: ObservedState<S>,
   }> {
-    shouldComponentUpdate({ state }: { state: ObservedState<S> }) {
+    shouldComponentUpdate({state}: {state: ObservedState<S>}) {
       if (Array.isArray(state)) {
         // Assumes that if nextProps.state is an array, then the this.props.state is also
         // an array.
         const currentState = ((this.props.state: any): Array<S>);
         return state.some(
-          (observedState, i) => observedState !== currentState[i]
+          (observedState, i) => observedState !== currentState[i],
         );
       }
       return this.props.state !== state;
     }
 
     render() {
-      const { children, state } = this.props;
+      const {children, state} = this.props;
       return children(state, update);
     }
   }
 
   class CopyOnWriteConsumer<S> extends React.Component<{
     selector: Selector<T, S>,
-    children: ConsumerCallback<T, S>
+    children: ConsumerCallback<T, S>,
   }> {
     static defaultProps = {
-      selector: identityFn
+      selector: identityFn,
     };
 
-    getObservedState(state: T, selectors: Selector<T, S>): ObservedState<S> {
-      if (Array.isArray(selectors)) {
-        return selectors.map(fn => fn(state));
-      }
-      return selectors(state);
-    }
-
     consumer = (state: T) => {
-      const { children, selector } = this.props;
+      const {children, selector} = this.props;
       const observedState = this.getObservedState(state, selector);
       return (
         <ConsumerIndirection state={observedState}>
@@ -164,8 +220,30 @@ export default function createCopyOnWriteState<T>(baseState: T) {
       );
     };
 
+    getObservedState(state: T, selectors: Selector<T, S>): ObservedState<S> {
+      if (Array.isArray(selectors)) {
+        return selectors.map(selector => selector(state));
+      }
+      return selectors(state);
+    }
+
+    componentDidMount() {
+      const selectors = [].concat(this.props.selector);
+      selectors.forEach(optimizeSelector);
+    }
+
+    componentWillUnmount() {
+      const selectors = [].concat(this.props.selector);
+      selectors.forEach(deoptimizeSelector);
+    }
+
     render() {
-      return <State.Consumer>{this.consumer}</State.Consumer>;
+      const observedBits = getObservedBits(this.props.selector);
+      return (
+        <State.Consumer unstable_observedBits={observedBits}>
+          {this.consumer}
+        </State.Consumer>
+      );
     }
   }
 
@@ -175,7 +253,7 @@ export default function createCopyOnWriteState<T>(baseState: T) {
    * state, but doesn't care about what the current state is
    */
   class CopyOnWriteMutator extends React.Component<{
-    children: (Updater<T>) => React$Node
+    children: (Updater<T>) => React$Node,
   }> {
     render() {
       return this.props.children(update);
@@ -187,6 +265,7 @@ export default function createCopyOnWriteState<T>(baseState: T) {
     Consumer: CopyOnWriteConsumer,
     Mutator: CopyOnWriteMutator,
     update,
-    createMutator
+    createMutator,
+    createSelector,
   };
 }
