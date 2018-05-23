@@ -136,7 +136,7 @@ const UserPosts = ({ userId }) => (
   <State.Consumer selector={state => state.posts}>
    {posts => {
      const filteredPosts = posts.filter(post => post.id === userId)
-     return userPosts.map(post => <Post {...post} />)
+     return filteredPosts.map(post => <Post {...post} />)
    }
   </State.Consumer>
 )
@@ -153,7 +153,7 @@ const UserPosts = () => (
   <State.Consumer selector={state => ({ posts: state.posts, userId: state.user.id }}>
    {({posts, userId}) => {
      const filteredPosts = posts.filter(post => post.id === userId)
-     return posts.map(post => <Post id={post.id} />)
+     return filteredPosts.map(post => <Post id={post.id} />)
    }
   </State.Consumer>
 )
@@ -168,7 +168,7 @@ const UserPosts = () => (
       <State.Consumer selector={state => state.user.id}>
         {userId => {
           const filteredPosts = posts.filter(post => post.id === userId);
-          return posts.map(post => <Post id={post.id} />);
+          return filteredPosts.map(post => <Post id={post.id} />);
         }}
       </State.Consumer>
     )}
@@ -187,7 +187,7 @@ const UserPosts = () => (
   <State.Consumer selector={[state => state.posts, state => state.userId]}>
     {[posts, userId] =>
         const filteredPosts = posts.filter(post => post.id === userId)
-        return posts.map(post => <Post id={post.id} />)
+        return filteredPosts.map(post => <Post id={post.id} />)
     )}
   </State.Consumer>
 )
