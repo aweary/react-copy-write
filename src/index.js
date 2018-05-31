@@ -77,12 +77,12 @@ export default function createCopyOnWriteState<T>(baseState: T) {
    * to calling mutate(...) directly, except you can define it statically,
    * and have any additional arguments forwarded.
    */
-  function createMutator(fn: UpdateFn<T>)  {
+  function createMutator(fn: UpdateFn<T>) {
     return (...args: mixed[]) => {
       update(draft => {
         fn(draft, ...args);
-      })
-    }
+      });
+    };
   }
 
   class CopyOnWriteStoreProvider extends React.Component<
@@ -117,12 +117,21 @@ export default function createCopyOnWriteState<T>(baseState: T) {
     }
   }
 
-  class ConsumerIndirection<S> extends React.Component<{
+  type ConsumerIndirectionProps<S> = {|
+    // If state is an array it may be because the consumer is using an
+    // array of selectors, or there's a single selector that returned an array.
+    // This boolean tells us which case we're dealing with, so we don't end up
+    // doing the wrong comparison
+    hasMultipleSelectors: boolean,
     children: ConsumerCallback<T, S>,
     state: ObservedState<S>
-  }> {
-    shouldComponentUpdate({ state }: { state: ObservedState<S> }) {
-      if (Array.isArray(state)) {
+  |};
+
+  class ConsumerIndirection<S> extends React.Component<
+    ConsumerIndirectionProps<S>
+  > {
+    shouldComponentUpdate({ state, hasMultipleSelectors }) {
+      if (hasMultipleSelectors && Array.isArray(state)) {
         // Assumes that if nextProps.state is an array, then the this.props.state is also
         // an array.
         const currentState = ((this.props.state: any): Array<S>);
@@ -147,18 +156,17 @@ export default function createCopyOnWriteState<T>(baseState: T) {
       selector: identityFn
     };
 
-    getObservedState(state: T, selectors: Selector<T, S>): ObservedState<S> {
-      if (Array.isArray(selectors)) {
-        return selectors.map(fn => fn(state));
-      }
-      return selectors(state);
-    }
-
     consumer = (state: T) => {
       const { children, selector } = this.props;
-      const observedState = this.getObservedState(state, selector);
+      const hasMultipleSelectors = Array.isArray(selector);
+      const observedState = hasMultipleSelectors
+        ? selector.map(fn => fn(state))
+        : selector(state);
       return (
-        <ConsumerIndirection state={observedState}>
+        <ConsumerIndirection
+          hasMultipleSelectors={hasMultipleSelectors}
+          state={observedState}
+        >
           {children}
         </ConsumerIndirection>
       );
