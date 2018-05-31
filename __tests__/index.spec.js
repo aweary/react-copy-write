@@ -1,6 +1,6 @@
 import React from "react";
 import { render, fireEvent, Simulate } from "react-testing-library";
-import createStore from "../src";
+import createState from "../src";
 
 let Provider;
 let Consumer;
@@ -34,7 +34,7 @@ const baseState = {
 
 describe("copy-on-write-store", () => {
   beforeEach(() => {
-    const State = createStore(baseState);
+    const State = createState(baseState);
     Provider = State.Provider;
     Consumer = State.Consumer;
     createMutator = State.createMutator;
@@ -188,7 +188,7 @@ describe("copy-on-write-store", () => {
     expect(log).toEqual(["Render Consumer"]);
   });
 
-  it('createMutator', () => {
+  it("createMutator", () => {
     let log = [];
 
     const updateUserHandle = createMutator((draft, newHandle) => {
@@ -199,23 +199,54 @@ describe("copy-on-write-store", () => {
       render() {
         return (
           <Provider>
-           <div>
-            <Consumer selector={state => state.user.handle}>
-              {handle => {
-                log.push(handle);
-                return null;
-              }}
-            </Consumer> 
-           </div>
+            <div>
+              <Consumer selector={state => state.user.handle}>
+                {handle => {
+                  log.push(handle);
+                  return null;
+                }}
+              </Consumer>
+            </div>
           </Provider>
-        )
+        );
       }
     }
 
     render(<App />);
-    expect(log).toEqual(['happylittlemistake']);
+    expect(log).toEqual(["happylittlemistake"]);
     log = [];
-    updateUserHandle('sadbigdecisions');
-    expect(log).toEqual(['sadbigdecisions']);
+    updateUserHandle("sadbigdecisions");
+    expect(log).toEqual(["sadbigdecisions"]);
+  });
+
+  it("handles selectors that return arrays", () => {
+    const { Provider, Consumer, update: mutate } = createState({
+      items: [1, 1, 2]
+    });
+    const removeItem = n =>
+      mutate(draft => {
+        draft.items = draft.items.filter(item => item !== n);
+      });
+    let log = [];
+    class App extends React.Component {
+      render() {
+        return (
+          <Provider>
+            <div>
+              <Consumer selector={state => state.items}>
+                {items => {
+                  log.push(items.join());
+                  return null;
+                }}
+              </Consumer>
+            </div>
+          </Provider>
+        );
+      }
+    }
+    render(<App />);
+    expect(log).toEqual(["1,1,2"]);
+    removeItem(2);
+    expect(log).toEqual(["1,1,2", "1,1"]);
   });
 });
