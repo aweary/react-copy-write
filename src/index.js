@@ -45,16 +45,52 @@ function identityFn<T>(n: T): T {
   return n;
 }
 
-export default function createCopyOnWriteState<T>(baseState: T) {
+function Store<T>(baseState: T) {
+  let state: T = baseState;
+  function getState(): T {
+    return state;
+  }
+  function setState(newState: T) {
+    state = newState;
+  }
+  return {
+    getState,
+    setState
+  };
+}
+
+export default function createCopyOnWriteState<T>(
+  baseState: T,
+  middlewares = []
+) {
   /**
    * The current state is stored in a closure, shared by the consumers and
    * the provider. Consumers still respect the Provider/Consumer contract
    * that React context enforces, by only accessing state in the consumer.
    */
   let currentState: T = baseState;
+  let store = Store(baseState);
   let providerListener = null;
   // $FlowFixMe React.createContext exists now
   const State = React.createContext(baseState);
+
+  const updateMiddleWare = getState => next => fn => {
+    const state = getState();
+    const nextState = next(state, fn);
+    if (nextState !== state) {
+      store.setState(nextState);
+      providerListener();
+    }
+  };
+
+  let chainedProduce = produce;
+  middlewares = middlewares.concat(updateMiddleWare);
+  middlewares = middlewares.slice();
+  middlewares.reverse();
+  middlewares.forEach(
+    middleware => (chainedProduce = middleware(store.getState)(chainedProduce))
+  );
+
   // Wraps immer's produce. Only notifies the Provider
   // if the returned draft has been changed.
   function update(fn: UpdateFn<T>) {
@@ -63,13 +99,9 @@ export default function createCopyOnWriteState<T>(baseState: T) {
       `update(...): you cannot call update when no CopyOnWriteStoreProvider ` +
         `instance is mounted. Make sure to wrap your consumer components with ` +
         `the returned Provider, and/or delay your update calls until the component ` +
-        `tree is moutned.`
+        `tree is mounted.`
     );
-    const nextState = produce(currentState, fn);
-    if (nextState !== currentState) {
-      currentState = nextState;
-      providerListener();
-    }
+    chainedProduce(fn);
   }
 
   /**
@@ -105,7 +137,7 @@ export default function createCopyOnWriteState<T>(baseState: T) {
     }
 
     updateState = () => {
-      this.setState(currentState);
+      this.setState(store.getState());
     };
 
     render() {
@@ -195,6 +227,7 @@ export default function createCopyOnWriteState<T>(baseState: T) {
     Consumer: CopyOnWriteConsumer,
     Mutator: CopyOnWriteMutator,
     update,
-    createMutator
+    createMutator,
+    getState: store.getState
   };
 }
