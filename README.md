@@ -137,9 +137,9 @@ const UserPosts = ({ userId }) => (
    {posts => {
      const filteredPosts = posts.filter(post => post.id === userId)
      return userPosts.map(post => <Post {...post} />)
-   }
+   }}
   </State.Consumer>
-)
+);
 ```
 
 Now those `Post` components will only re-render if `UserPosts` is re-rendered (a new `userID`) or if `state.posts` gets updated somewhere else. `selector` relies on referrential equality checks between renders, so avoid returning any new objects or arrays. Since it's relying on `===` feel free to return primitive values like strings or numbers which maintain that strict equality between instances.
@@ -150,13 +150,13 @@ In some cases, deriving state involves reading from other parts of your state. M
 
 ```jsx
 const UserPosts = () => (
-  <State.Consumer selector={state => ({ posts: state.posts, userId: state.user.id }}>
+  <State.Consumer selector={state => ({ posts: state.posts, userId: state.user.id })}>
    {({posts, userId}) => {
      const filteredPosts = posts.filter(post => post.id === userId)
      return posts.map(post => <Post id={post.id} />)
-   }
+   }}
   </State.Consumer>
-)
+);
 ```
 
 This is just as bad as filtering in the selector, since a new object is returned each time. A naive solution (AKA, what I tried to do first) would be to nest Consumers.
@@ -185,12 +185,12 @@ To solve this, Consumers can accept an array of selectors.
 ```jsx
 const UserPosts = () => (
   <State.Consumer selector={[state => state.posts, state => state.userId]}>
-    {[posts, userId] =>
-        const filteredPosts = posts.filter(post => post.id === userId)
-        return posts.map(post => <Post id={post.id} />)
-    )}
+    {([posts, userId]) => {
+      const filteredPosts = posts.filter(post => post.id === userId);
+      return posts.map(post => <Post id={post.id} />);
+    }}
   </State.Consumer>
-)
+);
 ```
 
 Now the Consumer will re-render if any of the selectors return a new value.
@@ -293,5 +293,5 @@ const SearchBar = () => (
     )}
     </State.Consumer>
   </div>
-)
+);
 ```
