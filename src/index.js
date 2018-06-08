@@ -18,19 +18,19 @@ import produce from "immer";
 import invariant from "invariant";
 
 // Update functions take the current state, mutate it, and return nothing (undefined)
-type UpdateFn<T> = T => void;
-// The updater function that gets called in consumers
-type Updater<T> = (UpdateFn<T>) => void;
+type MutateFn<T> = T => void;
+// The Mutator function that gets called in consumers
+type Mutator<T> = (MutateFn<T>) => void;
 
 type ObservedState<S> = S | Array<S>;
 /**
  * The callback passed to consumers accept the state and the
- * update function, and return a React.Node to render. If the user
+ * mutate function, and return a React.Node to render. If the user
  * defines a selector, the state will be whatever they return from the selector
- *  which should just be some subset of T. The updater function is always
+ *  which should just be some subset of T. The Mutator function is always
  * called with the entire state tree.
  */
-type ConsumerCallback<T, S> = (ObservedState<S>, Updater<T>) => React$Node;
+type ConsumerCallback<T, S> = (ObservedState<S>, Mutator<T>) => React$Node;
 
 /**
  * A selector can either be a simple selector, which just makes the base state to
@@ -57,12 +57,12 @@ export default function createCopyOnWriteState<T>(baseState: T) {
   const State = React.createContext(baseState);
   // Wraps immer's produce. Only notifies the Provider
   // if the returned draft has been changed.
-  function update(fn: UpdateFn<T>) {
+  function mutate(fn: MutateFn<T>) {
     invariant(
       providerListener !== null,
-      `update(...): you cannot call update when no CopyOnWriteStoreProvider ` +
+      `mutate(...): you cannot call mutate when no CopyOnWriteStoreProvider ` +
         `instance is mounted. Make sure to wrap your consumer components with ` +
-        `the returned Provider, and/or delay your update calls until the component ` +
+        `the returned Provider, and/or delay your mutate calls until the component ` +
         `tree is moutned.`
     );
     const nextState = produce(currentState, fn);
@@ -70,19 +70,6 @@ export default function createCopyOnWriteState<T>(baseState: T) {
       currentState = nextState;
       providerListener();
     }
-  }
-
-  /**
-   * createMutator lets you create a mutator function that is similar
-   * to calling mutate(...) directly, except you can define it statically,
-   * and have any additional arguments forwarded.
-   */
-  function createMutator(fn: UpdateFn<T>) {
-    return (...args: mixed[]) => {
-      update(draft => {
-        fn(draft, ...args);
-      });
-    };
   }
 
   class CopyOnWriteStoreProvider extends React.Component<
@@ -148,7 +135,7 @@ export default function createCopyOnWriteState<T>(baseState: T) {
 
     render() {
       const { children, state } = this.props;
-      return children(state, update);
+      return children(state, mutate);
     }
   }
 
@@ -181,24 +168,9 @@ export default function createCopyOnWriteState<T>(baseState: T) {
     }
   }
 
-  /**
-   * A mutator is like a consumer, except that it doesn't actually use any
-   * of the state. It's used for cases where a component wants to update some
-   * state, but doesn't care about what the current state is
-   */
-  class CopyOnWriteMutator extends React.Component<{
-    children: (Updater<T>) => React$Node
-  }> {
-    render() {
-      return this.props.children(update);
-    }
-  }
-
   return {
     Provider: CopyOnWriteStoreProvider,
     Consumer: CopyOnWriteConsumer,
-    Mutator: CopyOnWriteMutator,
-    update,
-    createMutator
+    mutate
   };
 }
