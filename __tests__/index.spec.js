@@ -4,7 +4,6 @@ import createState from "../src";
 
 let Provider;
 let Consumer;
-let createMutator;
 
 const baseState = {
   search: "",
@@ -37,7 +36,6 @@ describe("copy-on-write-store", () => {
     const State = createState(baseState);
     Provider = State.Provider;
     Consumer = State.Consumer;
-    createMutator = State.createMutator;
   });
 
   it("passes in state and an updater", () => {
@@ -188,39 +186,8 @@ describe("copy-on-write-store", () => {
     expect(log).toEqual(["Render Consumer"]);
   });
 
-  it("createMutator", () => {
-    let log = [];
-
-    const updateUserHandle = createMutator((draft, newHandle) => {
-      draft.user.handle = newHandle;
-    });
-
-    class App extends React.Component {
-      render() {
-        return (
-          <Provider>
-            <div>
-              <Consumer selector={state => state.user.handle}>
-                {handle => {
-                  log.push(handle);
-                  return null;
-                }}
-              </Consumer>
-            </div>
-          </Provider>
-        );
-      }
-    }
-
-    render(<App />);
-    expect(log).toEqual(["happylittlemistake"]);
-    log = [];
-    updateUserHandle("sadbigdecisions");
-    expect(log).toEqual(["sadbigdecisions"]);
-  });
-
   it("handles selectors that return arrays", () => {
-    const { Provider, Consumer, update: mutate } = createState({
+    const { Provider, Consumer, mutate } = createState({
       items: [1, 1, 2]
     });
     const removeItem = n =>
@@ -251,7 +218,7 @@ describe("copy-on-write-store", () => {
   });
 
   it("Providers can initialize state via props", () => {
-    const { Provider, Consumer, update: mutate } = createState({
+    const { Provider, Consumer, mutate } = createState({
       items: [0]
     });
     const addItem = item => {
