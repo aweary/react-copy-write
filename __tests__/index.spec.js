@@ -249,4 +249,36 @@ describe("copy-on-write-store", () => {
     removeItem(2);
     expect(log).toEqual(["1,1,2", "1,1"]);
   });
+
+  it("Providers can initialize state via props", () => {
+    const { Provider, Consumer, update: mutate } = createState({
+      items: [0]
+    });
+    const addItem = item => {
+      mutate(draft => {
+        draft.items.push(item);
+      });
+    };
+    let log = [];
+    const App = ({ initialState }) => (
+      <Provider initialState={initialState}>
+        <div>
+          <Consumer selector={state => state.items}>
+            {items => {
+              log.push(items.join());
+              return null;
+            }}
+          </Consumer>
+        </div>
+      </Provider>
+    );
+    const { rerender } = render(<App initialState={{ items: [1, 2, 3] }} />);
+    expect(log).toEqual(["1,2,3"]);
+    log = [];
+    rerender(<App initialState={{ items: [4, 5, 6] }} />);
+    // Log should be empty, since the consumer shouldn't re-render
+    expect(log).toEqual([]);
+    addItem(4);
+    expect(log).toEqual(["1,2,3,4"]);
+  });
 });

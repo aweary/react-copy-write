@@ -86,10 +86,10 @@ export default function createCopyOnWriteState<T>(baseState: T) {
   }
 
   class CopyOnWriteStoreProvider extends React.Component<
-    { children: React$Node },
+    { children: React$Node, initialState?: T },
     T
   > {
-    state = baseState;
+    state = this.props.initialState || baseState;
 
     componentDidMount() {
       invariant(
@@ -98,6 +98,10 @@ export default function createCopyOnWriteState<T>(baseState: T) {
           `instance of a provider rendered at any given time.`
       );
       providerListener = this.updateState;
+      // Allow a Provider to initialize state from props
+      if (this.props.initialState) {
+        currentState = this.props.initialState;
+      }
     }
 
     componentWillUnmount() {
