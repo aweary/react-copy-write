@@ -248,4 +248,50 @@ describe("copy-on-write-store", () => {
     addItem(4);
     expect(log).toEqual(["1,2,3,4"]);
   });
+
+  it("memoize", () => {
+    const { Provider, Consumer, mutate } = createState({
+      foo: "foo",
+      bar: "bar"
+    });
+    const setFoo = value => {
+      mutate(draft => {
+        draft.foo = value;
+      });
+    };
+    let log = [];
+    const App = ({ memoize }) => (
+      <Provider>
+        <div>
+          <Consumer selector={state => state.foo}>
+            {foo => {
+              log.push("Render Foo: " + foo);
+              const barProps = memoize === false ? { memoize } : {};
+              return (
+                <Consumer {...barProps} selector={state => state.bar}>
+                  {bar => {
+                    log.push("Render Bar: " + foo + bar);
+                    return null;
+                  }}
+                </Consumer>
+              );
+            }}
+          </Consumer>
+        </div>
+      </Provider>
+    );
+    const { unmount } = render(<App />);
+    expect(log).toEqual(["Render Foo: foo", "Render Bar: foobar"]);
+    log = [];
+    setFoo("FOO");
+    // Bar is memoized by default, so it shouldn't re-render
+    expect(log).toEqual(["Render Foo: FOO"]);
+    log = [];
+    unmount();
+    render(<App memoize={false} />);
+    expect(log).toEqual(["Render Foo: foo", "Render Bar: foobar"]);
+    log = [];
+    setFoo("FOO");
+    expect(log).toEqual(["Render Foo: FOO", "Render Bar: FOObar"]);
+  });
 });
