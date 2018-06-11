@@ -109,7 +109,7 @@ export default function createCopyOnWriteState<T>(baseState: T) {
     }
   }
 
-  type ConsumerIndirectionProps<S> = {|
+  type ConsumerMemoizationProps<S> = {|
     // If state is an array it may be because the consumer is using an
     // array of selectors, or there's a single selector that returned an array.
     // This boolean tells us which case we're dealing with, so we don't end up
@@ -119,8 +119,8 @@ export default function createCopyOnWriteState<T>(baseState: T) {
     state: ObservedState<S>
   |};
 
-  class ConsumerIndirection<S> extends React.Component<
-    ConsumerIndirectionProps<S>
+  class ConsumerMemoization<S> extends React.Component<
+    ConsumerMemoizationProps<S>
   > {
     shouldComponentUpdate({ state, hasMultipleSelectors }) {
       if (hasMultipleSelectors && Array.isArray(state)) {
@@ -160,12 +160,12 @@ export default function createCopyOnWriteState<T>(baseState: T) {
         return children(observedState, mutate);
       }
       return (
-        <ConsumerIndirection
+        <ConsumerMemoization
           hasMultipleSelectors={hasMultipleSelectors}
           state={observedState}
         >
           {children}
-        </ConsumerIndirection>
+        </ConsumerMemoization>
       );
     };
 
