@@ -76,7 +76,7 @@ export default function createCopyOnWriteState<T>(baseState: T) {
     { children: React$Node, initialState?: T },
     T
   > {
-    state = this.props.initialState || baseState;
+    state = this.props.initialState || currentState;
 
     componentDidMount() {
       invariant(
@@ -93,6 +93,7 @@ export default function createCopyOnWriteState<T>(baseState: T) {
 
     componentWillUnmount() {
       providerListener = null;
+      currentState = baseState;
     }
 
     updateState = () => {
@@ -141,18 +142,23 @@ export default function createCopyOnWriteState<T>(baseState: T) {
 
   class CopyOnWriteConsumer<S> extends React.Component<{
     selector: Selector<T, S>,
-    children: ConsumerCallback<T, S>
+    children: ConsumerCallback<T, S>,
+    memoize: boolean
   }> {
     static defaultProps = {
-      selector: identityFn
+      selector: identityFn,
+      memoize: true
     };
 
     consumer = (state: T) => {
-      const { children, selector } = this.props;
+      const { children, selector, memoize } = this.props;
       const hasMultipleSelectors = Array.isArray(selector);
       const observedState = hasMultipleSelectors
         ? selector.map(fn => fn(state))
         : selector(state);
+      if (!memoize) {
+        return children(observedState, mutate);
+      }
       return (
         <ConsumerIndirection
           hasMultipleSelectors={hasMultipleSelectors}
