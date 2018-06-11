@@ -46,6 +46,18 @@ export default function createCopyOnWriteState(baseState) {
     }
   }
 
+  /**
+   * Currently createSelector is just the identity function. The long-term
+   * goal is for it to be a way to create optimizable selectors using React's
+   * unstable_observedBits Context API. The implementation of that
+   * optimization strategy is currently still in development, but I want people
+   * to start using createSelector now. Then, when it *does* get optimized, there
+   * will be changes required from users.
+   */
+  function createSelector(fn) {
+    return fn;
+  }
+
   class CopyOnWriteStoreProvider extends React.Component {
     state = this.props.initialState || currentState;
 
@@ -125,6 +137,7 @@ export default function createCopyOnWriteState(baseState) {
   return {
     Provider: CopyOnWriteStoreProvider,
     Consumer: CopyOnWriteConsumer,
-    mutate
+    mutate,
+    createSelector
   };
 }

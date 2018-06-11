@@ -342,4 +342,21 @@ describe("copy-on-write-store", () => {
     expect(log[0].posts).toEqual(log[1].posts);
   });
 
+  it("createSelector", () => {
+    let log = [];
+    const { createSelector, Provider, Consumer } = createState({ foo: "foo" });
+    const fooSelector = createSelector(state => state.foo);
+    const App = () => (
+      <Provider>
+        <Consumer select={[fooSelector]}>
+          {([foo]) => {
+            log.push(foo);
+            return null;
+          }}
+        </Consumer>
+      </Provider>
+    );
+    render(<App />);
+    expect(log).toEqual(["foo"]);
+  });
 });
