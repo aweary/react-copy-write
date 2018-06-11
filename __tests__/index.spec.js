@@ -294,4 +294,37 @@ describe("copy-on-write-store", () => {
     setFoo("FOO");
     expect(log).toEqual(["Render Foo: FOO", "Render Bar: FOObar"]);
   });
+
+  it("mutate with current state", () => {
+    const log = [];
+    let updater;
+    class App extends React.Component {
+      render() {
+        return (
+          <Provider>
+            <div>
+              <Consumer>
+                {([state], update) => {
+                  log.push(state);
+                  updater = update;
+                  return null;
+                }}
+              </Consumer>
+            </div>
+          </Provider>
+        );
+      }
+    }
+    render(<App />);
+    // First render is the base state
+    expect(log).toEqual([baseState]);
+    updater((draft, state) => {
+      draft.user.id = state.user.id + 1;
+    });
+    // Second render should have the updated user.id
+    expect(log[1].user.id).toBe(43);
+    // Other fields shouldn't have been updated
+    expect(log[0].posts).toEqual(log[1].posts);
+  });
+
 });

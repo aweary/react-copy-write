@@ -28,7 +28,6 @@ export default function createCopyOnWriteState(baseState) {
    */
   let currentState = baseState;
   let providerListener = null;
-  // $FlowFixMe React.createContext exists now
   const State = React.createContext(baseState);
   // Wraps immer's produce. Only notifies the Provider
   // if the returned draft has been changed.
@@ -40,7 +39,7 @@ export default function createCopyOnWriteState(baseState) {
         `the returned Provider, and/or delay your mutate calls until the component ` +
         `tree is moutned.`
     );
-    const nextState = produce(currentState, fn);
+    const nextState = produce(currentState, draft => fn(draft, currentState));
     if (nextState !== currentState) {
       currentState = nextState;
       providerListener();
