@@ -103,20 +103,20 @@ describe("copy-on-write-store", () => {
       render() {
         return (
           <Provider>
-            <Consumer selectors={[state => state.user]}>
+            <Consumer select={[state => state.user]}>
               {([user], update) => {
                 log.push("Render User");
                 updater = update;
                 return null;
               }}
             </Consumer>
-            <Consumer selectors={[state => state.posts]}>
+            <Consumer select={[state => state.posts]}>
               {([posts]) => {
                 log.push("Render Posts");
                 return null;
               }}
             </Consumer>
-            <Consumer selectors={[state => state]}>
+            <Consumer select={[state => state]}>
               {([state]) => {
                 log.push("Render State");
                 return null;
@@ -141,7 +141,7 @@ describe("copy-on-write-store", () => {
     let updater;
 
     const UserPosts = ({ children }) => (
-      <Consumer selectors={[state => state.user.id, state => state.posts]}>
+      <Consumer select={[state => state.user.id, state => state.posts]}>
         {([userID, posts]) => {
           const userPosts = posts.filter(post => post.authorID === userID);
           return children(userPosts);
@@ -200,7 +200,7 @@ describe("copy-on-write-store", () => {
         return (
           <Provider>
             <div>
-              <Consumer selectors={[state => state.items]}>
+              <Consumer select={[state => state.items]}>
                 {([items]) => {
                   log.push(items.join());
                   return null;
@@ -230,7 +230,7 @@ describe("copy-on-write-store", () => {
     const App = ({ initialState }) => (
       <Provider initialState={initialState}>
         <div>
-          <Consumer selectors={[state => state.items]}>
+          <Consumer select={[state => state.items]}>
             {([items]) => {
               log.push(items.join());
               return null;
@@ -249,33 +249,44 @@ describe("copy-on-write-store", () => {
     expect(log).toEqual(["1,2,3,4"]);
   });
 
-  it("memoize", () => {
+  it("consume", () => {
     const { Provider, Consumer, mutate } = createState({
       foo: "foo",
-      bar: "bar"
+      bar: "bar",
+      baz: "baz"
     });
     const setFoo = value => {
       mutate(draft => {
         draft.foo = value;
       });
     };
+    const setBaz = value => {
+      mutate(draft => {
+        draft.baz = value;
+      });
+    };
     let log = [];
     const App = ({ memoize }) => (
       <Provider>
         <div>
-          <Consumer selectors={[state => state.foo]}>
-            {([foo]) => {
-              log.push("Render Foo: " + foo);
-              const barProps = memoize === false ? { memoize } : {};
-              return (
-                <Consumer {...barProps} selectors={[state => state.bar]}>
-                  {([bar]) => {
-                    log.push("Render Bar: " + foo + bar);
-                    return null;
-                  }}
-                </Consumer>
-              );
-            }}
+          <Consumer select={[state => state.baz]}>
+            {([baz]) => (
+              <Consumer consume={{ baz }} select={[state => state.foo]}>
+                {([foo]) => {
+                  log.push("Render Foo: " + foo);
+                  const barProps =
+                    memoize === false ? { consume: { foo } } : {};
+                  return (
+                    <Consumer {...barProps} select={[state => state.bar]}>
+                      {([bar]) => {
+                        log.push("Render Bar: " + foo + bar);
+                        return null;
+                      }}
+                    </Consumer>
+                  );
+                }}
+              </Consumer>
+            )}
           </Consumer>
         </div>
       </Provider>
@@ -293,6 +304,10 @@ describe("copy-on-write-store", () => {
     log = [];
     setFoo("FOO");
     expect(log).toEqual(["Render Foo: FOO", "Render Bar: FOObar"]);
+    log = [];
+    setBaz("BAZ");
+    // Only Foo should re-render, since it consumes baz
+    expect(log).toEqual(["Render Foo: FOO"]);
   });
 
   it("mutate with current state", () => {
