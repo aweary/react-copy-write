@@ -10,54 +10,29 @@
  *
  * Provides a mutable API with immutable state for React. Powered
  * by immer and React.createContext.
- *
- * @flow
  */
 import React, { Component } from "react";
 import produce from "immer";
 import invariant from "invariant";
 
-// Update functions take the current state, mutate it, and return nothing (undefined)
-type MutateFn<T> = T => void;
-// The Mutator function that gets called in consumers
-type Mutator<T> = (MutateFn<T>) => void;
-
-type ObservedState<S> = S | Array<S>;
-/**
- * The callback passed to consumers accept the state and the
- * mutate function, and return a React.Node to render. If the user
- * defines a selector, the state will be whatever they return from the selector
- *  which should just be some subset of T. The Mutator function is always
- * called with the entire state tree.
- */
-type ConsumerCallback<T, S> = (ObservedState<S>, Mutator<T>) => React$Node;
-
-/**
- * A selector can either be a simple selector, which just makes the base state to
- * some subset of that current state, or it can be an array of simple selectors which
- * also map the current state to some hetrogenous subsets of that current state. This
- * is defined by ObservedState.
- */
-type Selector<T, S> = T => ObservedState<S>;
-
 // The default selector is the identity function
-function identityFn<T>(n: T): T {
+function identityFn(n) {
   return n;
 }
 
-export default function createCopyOnWriteState<T>(baseState: T) {
+export default function createCopyOnWriteState(baseState) {
   /**
    * The current state is stored in a closure, shared by the consumers and
    * the provider. Consumers still respect the Provider/Consumer contract
    * that React context enforces, by only accessing state in the consumer.
    */
-  let currentState: T = baseState;
+  let currentState = baseState;
   let providerListener = null;
   // $FlowFixMe React.createContext exists now
   const State = React.createContext(baseState);
   // Wraps immer's produce. Only notifies the Provider
   // if the returned draft has been changed.
-  function mutate(fn: MutateFn<T>) {
+  function mutate(fn) {
     invariant(
       providerListener !== null,
       `mutate(...): you cannot call mutate when no CopyOnWriteStoreProvider ` +
@@ -72,10 +47,7 @@ export default function createCopyOnWriteState<T>(baseState: T) {
     }
   }
 
-  class CopyOnWriteStoreProvider extends React.Component<
-    { children: React$Node, initialState?: T },
-    T
-  > {
+  class CopyOnWriteStoreProvider extends React.Component {
     state = this.props.initialState || currentState;
 
     componentDidMount() {
@@ -109,20 +81,9 @@ export default function createCopyOnWriteState<T>(baseState: T) {
     }
   }
 
-  type ConsumerMemoizationProps<S> = {|
-    // If state is an array it may be because the consumer is using an
-    // array of selectors, or there's a single selector that returned an array.
-    // This boolean tells us which case we're dealing with, so we don't end up
-    // doing the wrong comparison
-    children: ConsumerCallback<T, S>,
-    state: ObservedState<S>
-  |};
-
-  class ConsumerMemoization<S> extends React.Component<
-    ConsumerMemoizationProps<S>
-  > {
-    shouldComponentUpdate({ state, hasMultipleSelectors }) {
-      const currentState = ((this.props.state: any): Array<S>);
+  class ConsumerMemoization extends React.Component {
+    shouldComponentUpdate({ state }) {
+      const currentState = this.props.state;
       return state.some(
         (observedState, i) => observedState !== currentState[i]
       );
@@ -134,26 +95,20 @@ export default function createCopyOnWriteState<T>(baseState: T) {
     }
   }
 
-  class CopyOnWriteConsumer<S> extends React.Component<{
-    selectors: Selector<T, S>,
-    children: ConsumerCallback<T, S>,
-    memoize: boolean
-  }> {
+  class CopyOnWriteConsumer extends React.Component {
     static defaultProps = {
       selectors: [identityFn],
       memoize: true
     };
 
-    consumer = (state: T) => {
+    consumer = state => {
       const { children, selectors, memoize } = this.props;
       const observedState = selectors.map(fn => fn(state));
       if (!memoize) {
         return children(observedState, mutate);
       }
       return (
-        <ConsumerMemoization
-          state={observedState}
-        >
+        <ConsumerMemoization state={observedState}>
           {children}
         </ConsumerMemoization>
       );
