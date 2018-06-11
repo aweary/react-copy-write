@@ -82,17 +82,17 @@ export default function createCopyOnWriteState(baseState) {
   }
 
   class ConsumerMemoization extends React.Component {
-    shouldComponentUpdate({ state, memoizeWith }) {
+    shouldComponentUpdate({ state, consume }) {
       const currentState = this.props.state;
-      const currentMemoizeWith = this.props.memoizeWith;
+      const currentConsume = this.props.consume;
       const hasStateChanged = state.some(
         (observedState, i) => observedState !== currentState[i]
       );
-      if (hasStateChanged || memoizeWith === null) {
+      if (hasStateChanged || consume === null) {
         return hasStateChanged;
       }
-      return Object.keys(memoizeWith).some(
-        key => memoizeWith[key] !== currentMemoizeWith[key]
+      return Object.keys(consume).some(
+        key => consume[key] !== currentConsume[key]
       );
     }
 
@@ -104,15 +104,15 @@ export default function createCopyOnWriteState(baseState) {
 
   class CopyOnWriteConsumer extends React.Component {
     static defaultProps = {
-      selectors: [identityFn],
-      memoizeWith: null
+      select: [identityFn],
+      consume: null
     };
 
     consumer = state => {
-      const { children, selectors, memoizeWith } = this.props;
-      const observedState = selectors.map(fn => fn(state));
+      const { children, select, consume } = this.props;
+      const observedState = select.map(fn => fn(state));
       return (
-        <ConsumerMemoization memoizeWith={memoizeWith} state={observedState}>
+        <ConsumerMemoization consume={consume} state={observedState}>
           {children}
         </ConsumerMemoization>
       );
