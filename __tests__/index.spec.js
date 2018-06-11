@@ -47,7 +47,7 @@ describe("copy-on-write-store", () => {
           <Provider>
             <div>
               <Consumer>
-                {(state, update) => {
+                {([state], update) => {
                   log.push(state);
                   updater = update;
                   return null;
@@ -73,7 +73,7 @@ describe("copy-on-write-store", () => {
           <Provider>
             <div>
               <Consumer>
-                {(state, update) => {
+                {([state], update) => {
                   log.push(state);
                   updater = update;
                   return null;
@@ -103,21 +103,21 @@ describe("copy-on-write-store", () => {
       render() {
         return (
           <Provider>
-            <Consumer selector={state => state.user}>
-              {(user, update) => {
+            <Consumer selectors={[state => state.user]}>
+              {([user], update) => {
                 log.push("Render User");
                 updater = update;
                 return null;
               }}
             </Consumer>
-            <Consumer selector={state => state.posts}>
-              {posts => {
+            <Consumer selectors={[state => state.posts]}>
+              {([posts]) => {
                 log.push("Render Posts");
                 return null;
               }}
             </Consumer>
-            <Consumer selector={state => state}>
-              {state => {
+            <Consumer selectors={[state => state]}>
+              {([state]) => {
                 log.push("Render State");
                 return null;
               }}
@@ -141,7 +141,7 @@ describe("copy-on-write-store", () => {
     let updater;
 
     const UserPosts = ({ children }) => (
-      <Consumer selector={[state => state.user.id, state => state.posts]}>
+      <Consumer selectors={[state => state.user.id, state => state.posts]}>
         {([userID, posts]) => {
           const userPosts = posts.filter(post => post.authorID === userID);
           return children(userPosts);
@@ -200,8 +200,8 @@ describe("copy-on-write-store", () => {
         return (
           <Provider>
             <div>
-              <Consumer selector={state => state.items}>
-                {items => {
+              <Consumer selectors={[state => state.items]}>
+                {([items]) => {
                   log.push(items.join());
                   return null;
                 }}
@@ -230,8 +230,8 @@ describe("copy-on-write-store", () => {
     const App = ({ initialState }) => (
       <Provider initialState={initialState}>
         <div>
-          <Consumer selector={state => state.items}>
-            {items => {
+          <Consumer selectors={[state => state.items]}>
+            {([items]) => {
               log.push(items.join());
               return null;
             }}
@@ -263,13 +263,13 @@ describe("copy-on-write-store", () => {
     const App = ({ memoize }) => (
       <Provider>
         <div>
-          <Consumer selector={state => state.foo}>
-            {foo => {
+          <Consumer selectors={[state => state.foo]}>
+            {([foo]) => {
               log.push("Render Foo: " + foo);
               const barProps = memoize === false ? { memoize } : {};
               return (
-                <Consumer {...barProps} selector={state => state.bar}>
-                  {bar => {
+                <Consumer {...barProps} selectors={[state => state.bar]}>
+                  {([bar]) => {
                     log.push("Render Bar: " + foo + bar);
                     return null;
                   }}
