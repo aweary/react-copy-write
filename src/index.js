@@ -114,7 +114,6 @@ export default function createCopyOnWriteState<T>(baseState: T) {
     // array of selectors, or there's a single selector that returned an array.
     // This boolean tells us which case we're dealing with, so we don't end up
     // doing the wrong comparison
-    hasMultipleSelectors: boolean,
     children: ConsumerCallback<T, S>,
     state: ObservedState<S>
   |};
@@ -123,15 +122,10 @@ export default function createCopyOnWriteState<T>(baseState: T) {
     ConsumerMemoizationProps<S>
   > {
     shouldComponentUpdate({ state, hasMultipleSelectors }) {
-      if (hasMultipleSelectors && Array.isArray(state)) {
-        // Assumes that if nextProps.state is an array, then the this.props.state is also
-        // an array.
-        const currentState = ((this.props.state: any): Array<S>);
-        return state.some(
-          (observedState, i) => observedState !== currentState[i]
-        );
-      }
-      return this.props.state !== state;
+      const currentState = ((this.props.state: any): Array<S>);
+      return state.some(
+        (observedState, i) => observedState !== currentState[i]
+      );
     }
 
     render() {
@@ -141,27 +135,23 @@ export default function createCopyOnWriteState<T>(baseState: T) {
   }
 
   class CopyOnWriteConsumer<S> extends React.Component<{
-    selector: Selector<T, S>,
+    selectors: Selector<T, S>,
     children: ConsumerCallback<T, S>,
     memoize: boolean
   }> {
     static defaultProps = {
-      selector: identityFn,
+      selectors: [identityFn],
       memoize: true
     };
 
     consumer = (state: T) => {
-      const { children, selector, memoize } = this.props;
-      const hasMultipleSelectors = Array.isArray(selector);
-      const observedState = hasMultipleSelectors
-        ? selector.map(fn => fn(state))
-        : selector(state);
+      const { children, selectors, memoize } = this.props;
+      const observedState = selectors.map(fn => fn(state));
       if (!memoize) {
         return children(observedState, mutate);
       }
       return (
         <ConsumerMemoization
-          hasMultipleSelectors={hasMultipleSelectors}
           state={observedState}
         >
           {children}
