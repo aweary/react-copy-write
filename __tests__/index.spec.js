@@ -249,33 +249,44 @@ describe("copy-on-write-store", () => {
     expect(log).toEqual(["1,2,3,4"]);
   });
 
-  it("memoize", () => {
+  it("memoizeWith", () => {
     const { Provider, Consumer, mutate } = createState({
       foo: "foo",
-      bar: "bar"
+      bar: "bar",
+      baz: "baz"
     });
     const setFoo = value => {
       mutate(draft => {
         draft.foo = value;
       });
     };
+    const setBaz = value => {
+      mutate(draft => {
+        draft.baz = value;
+      });
+    };
     let log = [];
     const App = ({ memoize }) => (
       <Provider>
         <div>
-          <Consumer selectors={[state => state.foo]}>
-            {([foo]) => {
-              log.push("Render Foo: " + foo);
-              const barProps = memoize === false ? { memoize } : {};
-              return (
-                <Consumer {...barProps} selectors={[state => state.bar]}>
-                  {([bar]) => {
-                    log.push("Render Bar: " + foo + bar);
-                    return null;
-                  }}
-                </Consumer>
-              );
-            }}
+          <Consumer selectors={[state => state.baz]}>
+            {([baz]) => (
+              <Consumer memoizeWith={{ baz }} selectors={[state => state.foo]}>
+                {([foo]) => {
+                  log.push("Render Foo: " + foo);
+                  const barProps =
+                    memoize === false ? { memoizeWith: { foo } } : {};
+                  return (
+                    <Consumer {...barProps} selectors={[state => state.bar]}>
+                      {([bar]) => {
+                        log.push("Render Bar: " + foo + bar);
+                        return null;
+                      }}
+                    </Consumer>
+                  );
+                }}
+              </Consumer>
+            )}
           </Consumer>
         </div>
       </Provider>
@@ -293,5 +304,9 @@ describe("copy-on-write-store", () => {
     log = [];
     setFoo("FOO");
     expect(log).toEqual(["Render Foo: FOO", "Render Bar: FOObar"]);
+    log = [];
+    setBaz("BAZ");
+    // Only Foo should re-render, since its memoizeWith baz
+    expect(log).toEqual(["Render Foo: FOO"]);
   });
 });
