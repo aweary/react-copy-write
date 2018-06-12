@@ -14,6 +14,7 @@
 import React, { Component } from "react";
 import produce from "immer";
 import invariant from "invariant";
+import shallowEqual from "fbjs/lib/shallowEqual";
 
 // The default selector is the identity function
 function identityFn(n) {
@@ -97,14 +98,12 @@ export default function createCopyOnWriteState(baseState) {
       const currentState = this.props.state;
       const currentConsume = this.props.consume;
       const hasStateChanged = state.some(
-        (observedState, i) => observedState !== currentState[i]
+        (observedState, i) => !shallowEqual(observedState, currentState[i])
       );
       if (hasStateChanged || consume === null) {
         return hasStateChanged;
       }
-      return Object.keys(consume).some(
-        key => consume[key] !== currentConsume[key]
-      );
+      return !shallowEqual(currentConsume, consume);
     }
 
     render() {

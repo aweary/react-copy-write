@@ -359,4 +359,54 @@ describe("copy-on-write-store", () => {
     render(<App />);
     expect(log).toEqual(["foo"]);
   });
+
+  it("allows objects to be returned from selectors", () => {
+    let log = [];
+    const { Provider, Consumer, mutate } = createState({
+      foo: "foo",
+      bar: "bar",
+      baz: "baz",
+      qux: "qux"
+    });
+    const setFoo = value =>
+      mutate(draft => {
+        draft.foo = value;
+      });
+    const setBaz = value =>
+      mutate(draft => {
+        draft.baz = value;
+      });
+    const setQux = value =>
+      mutate(draft => {
+        draft.qux = value;
+      });
+    const App = () => (
+      <Provider>
+        <Consumer
+          select={[
+            state => ({ foo: state.foo, bar: state.bar }),
+            state => state.qux
+          ]}
+        >
+          {([{ foo, bar }, qux]) => {
+            log.push(foo + bar + qux);
+            return null;
+          }}
+        </Consumer>
+      </Provider>
+    );
+    render(<App />);
+    expect(log).toEqual(["foobarqux"]);
+    log = [];
+    setBaz("BAZ");
+    expect(log).toEqual([]);
+    setFoo("FOO");
+    expect(log).toEqual(["FOObarqux"]);
+    log = [];
+    setBaz("BAZ");
+    setQux("QUX");
+    setBaz("BAZ");
+    setBaz("BAZ");
+    expect(log).toEqual(["FOObarQUX"]);
+  });
 });
