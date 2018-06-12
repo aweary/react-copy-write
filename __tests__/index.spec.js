@@ -40,7 +40,6 @@ describe("copy-on-write-store", () => {
     mutate = State.mutate;
   });
 
-
   it("updates state", () => {
     const log = [];
     let updater;
@@ -379,5 +378,23 @@ describe("copy-on-write-store", () => {
     setBaz("BAZ");
     setBaz("BAZ");
     expect(log).toEqual(["FOObarQUX"]);
+  });
+
+  it("supports a `render` prop on Consumers", () => {
+    let log = [];
+    const { Provider, Consumer } = createState({ foo: "foo" });
+    const App = () => (
+      <Provider>
+        <Consumer
+          select={[state => state.foo]}
+          render={foo => {
+            log.push(foo);
+            return null;
+          }}
+        />
+      </Provider>
+    );
+    render(<App />);
+    expect(log).toEqual(["foo"]);
   });
 });
