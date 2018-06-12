@@ -4,6 +4,7 @@ import createState from "../src";
 
 let Provider;
 let Consumer;
+let mutate;
 
 const baseState = {
   search: "",
@@ -36,33 +37,9 @@ describe("copy-on-write-store", () => {
     const State = createState(baseState);
     Provider = State.Provider;
     Consumer = State.Consumer;
+    mutate = State.mutate;
   });
 
-  it("passes in state and an updater", () => {
-    const log = [];
-    let updater;
-    class App extends React.Component {
-      render() {
-        return (
-          <Provider>
-            <div>
-              <Consumer>
-                {([state], update) => {
-                  log.push(state);
-                  updater = update;
-                  return null;
-                }}
-              </Consumer>
-            </div>
-          </Provider>
-        );
-      }
-    }
-    render(<App />);
-    // First render is the base state
-    expect(log).toEqual([baseState]);
-    expect(typeof updater).toBe("function");
-  });
 
   it("updates state", () => {
     const log = [];
@@ -73,9 +50,8 @@ describe("copy-on-write-store", () => {
           <Provider>
             <div>
               <Consumer>
-                {([state], update) => {
+                {state => {
                   log.push(state);
-                  updater = update;
                   return null;
                 }}
               </Consumer>
@@ -87,7 +63,7 @@ describe("copy-on-write-store", () => {
     render(<App />);
     // First render is the base state
     expect(log).toEqual([baseState]);
-    updater(draft => {
+    mutate(draft => {
       draft.user.name = "Mithrandir";
     });
     // Second render should have the updated user
@@ -104,20 +80,19 @@ describe("copy-on-write-store", () => {
         return (
           <Provider>
             <Consumer select={[state => state.user]}>
-              {([user], update) => {
+              {user => {
                 log.push("Render User");
-                updater = update;
                 return null;
               }}
             </Consumer>
             <Consumer select={[state => state.posts]}>
-              {([posts]) => {
+              {posts => {
                 log.push("Render Posts");
                 return null;
               }}
             </Consumer>
             <Consumer select={[state => state]}>
-              {([state]) => {
+              {state => {
                 log.push("Render State");
                 return null;
               }}
@@ -129,7 +104,7 @@ describe("copy-on-write-store", () => {
     render(<App />);
     expect(log).toEqual(["Render User", "Render Posts", "Render State"]);
     log = [];
-    updater(draft => {
+    mutate(draft => {
       draft.user.id = 5;
     });
     // Shouldn't re-render Posts
@@ -138,11 +113,9 @@ describe("copy-on-write-store", () => {
 
   it("supports multiple selectors", () => {
     let log = [];
-    let updater;
-
     const UserPosts = ({ children }) => (
       <Consumer select={[state => state.user.id, state => state.posts]}>
-        {([userID, posts]) => {
+        {(userID, posts) => {
           const userPosts = posts.filter(post => post.authorID === userID);
           return children(userPosts);
         }}
@@ -161,9 +134,8 @@ describe("copy-on-write-store", () => {
                 }}
               </UserPosts>
               <Consumer>
-                {(state, update) => {
+                {state => {
                   log.push("Render Consumer");
-                  updater = update;
                   return null;
                 }}
               </Consumer>
@@ -179,7 +151,7 @@ describe("copy-on-write-store", () => {
       "Render Consumer"
     ]);
     log = [];
-    updater(draft => {
+    mutate(draft => {
       draft.loggedIn = false;
     });
     // Shouldn't have re-rendered UserPosts
@@ -201,7 +173,7 @@ describe("copy-on-write-store", () => {
           <Provider>
             <div>
               <Consumer select={[state => state.items]}>
-                {([items]) => {
+                {items => {
                   log.push(items.join());
                   return null;
                 }}
@@ -231,7 +203,7 @@ describe("copy-on-write-store", () => {
       <Provider initialState={initialState}>
         <div>
           <Consumer select={[state => state.items]}>
-            {([items]) => {
+            {items => {
               log.push(items.join());
               return null;
             }}
@@ -270,15 +242,15 @@ describe("copy-on-write-store", () => {
       <Provider>
         <div>
           <Consumer select={[state => state.baz]}>
-            {([baz]) => (
+            {baz => (
               <Consumer consume={{ baz }} select={[state => state.foo]}>
-                {([foo]) => {
+                {foo => {
                   log.push("Render Foo: " + foo);
                   const barProps =
                     memoize === false ? { consume: { foo } } : {};
                   return (
                     <Consumer {...barProps} select={[state => state.bar]}>
-                      {([bar]) => {
+                      {bar => {
                         log.push("Render Bar: " + foo + bar);
                         return null;
                       }}
@@ -319,9 +291,8 @@ describe("copy-on-write-store", () => {
           <Provider>
             <div>
               <Consumer>
-                {([state], update) => {
+                {state => {
                   log.push(state);
-                  updater = update;
                   return null;
                 }}
               </Consumer>
@@ -333,7 +304,7 @@ describe("copy-on-write-store", () => {
     render(<App />);
     // First render is the base state
     expect(log).toEqual([baseState]);
-    updater((draft, state) => {
+    mutate((draft, state) => {
       draft.user.id = state.user.id + 1;
     });
     // Second render should have the updated user.id
@@ -349,7 +320,7 @@ describe("copy-on-write-store", () => {
     const App = () => (
       <Provider>
         <Consumer select={[fooSelector]}>
-          {([foo]) => {
+          {foo => {
             log.push(foo);
             return null;
           }}
@@ -388,7 +359,7 @@ describe("copy-on-write-store", () => {
             state => state.qux
           ]}
         >
-          {([{ foo, bar }, qux]) => {
+          {({ foo, bar }, qux) => {
             log.push(foo + bar + qux);
             return null;
           }}

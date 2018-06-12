@@ -108,7 +108,7 @@ export default function createCopyOnWriteState(baseState) {
 
     render() {
       const { children, state } = this.props;
-      return children(state, mutate);
+      return children.apply(null, state);
     }
   }
 
