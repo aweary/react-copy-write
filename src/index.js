@@ -119,11 +119,11 @@ export default function createCopyOnWriteState(baseState) {
     };
 
     consumer = state => {
-      const { children, select, consume } = this.props;
+      const { children, select, consume, render } = this.props;
       const observedState = select.map(fn => fn(state));
       return (
         <ConsumerMemoization consume={consume} state={observedState}>
-          {children}
+          {typeof render === "function" ? render : children}
         </ConsumerMemoization>
       );
     };
