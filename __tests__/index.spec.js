@@ -214,13 +214,16 @@ describe("copy-on-write-store", () => {
     expect(log).toEqual(["1,2,3"]);
     log = [];
     rerender(<App initialState={{ items: [4, 5, 6] }} />);
-    // Log should be empty, since the consumer shouldn't re-render
-    expect(log).toEqual([]);
     addItem(4);
-    expect(log).toEqual(["1,2,3,4"]);
+    expect(log).toEqual([
+      // Should re-render with initial state (because its parent re-rendered)
+      "1,2,3",
+      // And with the addItem update
+      "1,2,3,4"
+    ]);
   });
 
-  it("consume", () => {
+  it("re-renders when the parent re-renders", () => {
     const { Provider, Consumer, mutate } = createState({
       foo: "foo",
       bar: "bar",
@@ -231,54 +234,63 @@ describe("copy-on-write-store", () => {
         draft.foo = value;
       });
     };
+    const setBar = value => {
+      mutate(draft => {
+        draft.bar = value;
+      });
+    };
     const setBaz = value => {
       mutate(draft => {
         draft.baz = value;
       });
     };
+
     let log = [];
-    const App = ({ memoize }) => (
+
+    const InnerApp = ({ foo }) => (
+      <Consumer select={[state => state.bar]}>
+        {bar => {
+          log.push("Render Bar: " + foo + bar);
+          return null;
+        }}
+      </Consumer>
+    );
+
+    const App = () => (
       <Provider>
         <div>
           <Consumer select={[state => state.baz]}>
-            {baz => (
-              <Consumer consume={{ baz }} select={[state => state.foo]}>
-                {foo => {
-                  log.push("Render Foo: " + foo);
-                  const barProps =
-                    memoize === false ? { consume: { foo } } : {};
-                  return (
-                    <Consumer {...barProps} select={[state => state.bar]}>
-                      {bar => {
-                        log.push("Render Bar: " + foo + bar);
-                        return null;
-                      }}
-                    </Consumer>
-                  );
-                }}
-              </Consumer>
-            )}
+            {baz => {
+              log.push("Render Baz: " + baz);
+              return (
+                <Consumer select={[state => state.foo]}>
+                  {foo => {
+                    log.push("Render Foo: " + foo);
+                    return <InnerApp foo={foo} />;
+                  }}
+                </Consumer>
+              );
+            }}
           </Consumer>
         </div>
       </Provider>
     );
-    const { unmount } = render(<App />);
-    expect(log).toEqual(["Render Foo: foo", "Render Bar: foobar"]);
-    log = [];
-    setFoo("FOO");
-    // Bar is memoized by default, so it shouldn't re-render
-    expect(log).toEqual(["Render Foo: FOO"]);
-    log = [];
-    unmount();
-    render(<App memoize={false} />);
-    expect(log).toEqual(["Render Foo: foo", "Render Bar: foobar"]);
+    render(<App />);
+    expect(log).toEqual([
+      "Render Baz: baz",
+      "Render Foo: foo",
+      "Render Bar: foobar"
+    ]);
     log = [];
     setFoo("FOO");
     expect(log).toEqual(["Render Foo: FOO", "Render Bar: FOObar"]);
     log = [];
     setBaz("BAZ");
-    // Only Foo should re-render, since it consumes baz
-    expect(log).toEqual(["Render Foo: FOO"]);
+    expect(log).toEqual([
+      "Render Baz: BAZ",
+      "Render Foo: FOO",
+      "Render Bar: FOObar"
+    ]);
   });
 
   it("mutate with current state", () => {

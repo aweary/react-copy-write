@@ -94,16 +94,14 @@ export default function createCopyOnWriteState(baseState) {
   }
 
   class ConsumerMemoization extends React.Component {
-    shouldComponentUpdate({ state, consume }) {
+    shouldComponentUpdate({ state, consume, id }) {
       const currentState = this.props.state;
-      const currentConsume = this.props.consume;
-      const hasStateChanged = state.some(
-        (observedState, i) => !shallowEqual(observedState, currentState[i])
+      return (
+        id !== this.props.id ||
+        state.some(
+          (observedState, i) => !shallowEqual(observedState, currentState[i])
+        )
       );
-      if (hasStateChanged || consume === null) {
-        return hasStateChanged;
-      }
-      return !shallowEqual(currentConsume, consume);
     }
 
     render() {
@@ -118,11 +116,32 @@ export default function createCopyOnWriteState(baseState) {
       consume: null
     };
 
+    /**
+     * Consumers need to differentiate between updates coming
+     * through Context, and updates triggered by a parent re-rendering.
+     *
+     * In the case of a Context update, we want to avoid re-rendering the Consumer
+     * unless state has changed.
+     *
+     * In the case of a parent re-rendering, we want to ere on the side of caution
+     * and render the Consumer again, just in case it's also using values from props.
+     *
+     * In order to accomplish this we use gDSFP to track an ID which represents the
+     * "version" of the Consumer. gDSFP won't be called for a Context update, so if
+     * the ID changes we know that the parent has re-rendered.
+     */
+    static getDerivedStateFromProps(props, state) {
+      return { id: state.id + 1 };
+    }
+
+    state = { id: 0 };
+
     consumer = state => {
-      const { children, select, consume, render } = this.props;
+      const { id } = this.state;
+      const { children, select, render } = this.props;
       const observedState = select.map(fn => fn(state));
       return (
-        <ConsumerMemoization consume={consume} state={observedState}>
+        <ConsumerMemoization id={id} state={observedState}>
           {typeof render === "function" ? render : children}
         </ConsumerMemoization>
       );
