@@ -94,10 +94,10 @@ export default function createCopyOnWriteState(baseState) {
   }
 
   class ConsumerMemoization extends React.Component {
-    shouldComponentUpdate({ state, consume, id }) {
+    shouldComponentUpdate({ state, consume, version }) {
       const currentState = this.props.state;
       return (
-        id !== this.props.id ||
+        version !== this.props.version ||
         state.some(
           (observedState, i) => !shallowEqual(observedState, currentState[i])
         )
@@ -126,22 +126,22 @@ export default function createCopyOnWriteState(baseState) {
      * In the case of a parent re-rendering, we want to ere on the side of caution
      * and render the Consumer again, just in case it's also using values from props.
      *
-     * In order to accomplish this we use gDSFP to track an ID which represents the
+     * In order to accomplish this we use gDSFP to track an integer which represents the
      * "version" of the Consumer. gDSFP won't be called for a Context update, so if
-     * the ID changes we know that the parent has re-rendered.
+     * the version changes we know that the parent has re-rendered.
      */
     static getDerivedStateFromProps(props, state) {
-      return { id: state.id + 1 };
+      return { version: state.version + 1 };
     }
 
-    state = { id: 0 };
+    state = { version: 0 };
 
     consumer = state => {
-      const { id } = this.state;
+      const { version } = this.state;
       const { children, select, render } = this.props;
       const observedState = select.map(fn => fn(state));
       return (
-        <ConsumerMemoization id={id} state={observedState}>
+        <ConsumerMemoization version={version} state={observedState}>
           {typeof render === "function" ? render : children}
         </ConsumerMemoization>
       );
