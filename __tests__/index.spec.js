@@ -71,6 +71,40 @@ describe("copy-on-write-store", () => {
     expect(log[0].posts).toEqual(log[1].posts);
   });
 
+  it("doesnt update state if no change was made", () => {
+    let log = [];
+    class App extends React.Component {
+      render() {
+        return (
+          <Provider>
+            <div>
+              <Consumer>
+                {state => {
+                  log.push(state);
+                  return null;
+                }}
+              </Consumer>
+            </div>
+          </Provider>
+        );
+      }
+    }
+    render(<App />);
+    // First render is the base state
+    expect(log).toEqual([baseState]);
+    log = [];
+    mutate(draft => {
+      // Noop, no update made
+    });
+    // No update should be processed
+    expect(log).toEqual([]);
+    mutate(draft => {
+      // Update to the current value, no update should be processed
+      draft.loggedIn = true;
+    });
+    expect(log).toEqual([]);
+  });
+
   it("memoizes selectors", () => {
     let log = [];
     let updater;
