@@ -22,29 +22,19 @@ function identityFn(n) {
 }
 
 export default function createCopyOnWriteState(baseState) {
-  /**
-   * The current state is stored in a closure, shared by the consumers and
-   * the provider. Consumers still respect the Provider/Consumer contract
-   * that React context enforces, by only accessing state in the consumer.
-   */
-  let currentState = baseState;
-  let providerListener = null;
+  let updateState = null;
   const State = React.createContext(baseState);
   // Wraps immer's produce. Only notifies the Provider
   // if the returned draft has been changed.
   function mutate(fn) {
     invariant(
-      providerListener !== null,
+      updateState !== null,
       `mutate(...): you cannot call mutate when no CopyOnWriteStoreProvider ` +
         `instance is mounted. Make sure to wrap your consumer components with ` +
         `the returned Provider, and/or delay your mutate calls until the component ` +
         `tree is moutned.`
     );
-    const nextState = produce(currentState, draft => fn(draft, currentState));
-    if (nextState !== currentState) {
-      currentState = nextState;
-      providerListener();
-    }
+    updateState(fn);
   }
 
   /**
@@ -60,28 +50,29 @@ export default function createCopyOnWriteState(baseState) {
   }
 
   class CopyOnWriteStoreProvider extends React.Component {
-    state = this.props.initialState || currentState;
+    state = this.props.initialState || baseState;
 
     componentDidMount() {
       invariant(
-        providerListener === null,
+        updateState === null,
         `CopyOnWriteStoreProvider(...): There can only be a single ` +
           `instance of a provider rendered at any given time.`
       );
-      providerListener = this.updateState;
-      // Allow a Provider to initialize state from props
-      if (this.props.initialState) {
-        currentState = this.props.initialState;
-      }
+      updateState = this.updateState;
     }
 
     componentWillUnmount() {
-      providerListener = null;
-      currentState = baseState;
+      updateState = null;
     }
 
-    updateState = () => {
-      this.setState(currentState);
+    updateState = fn => {
+      this.setState(state => {
+        const nextState = produce(state, draft => fn(draft, state));
+        if (nextState === state) {
+          return null;
+        }
+        return nextState;
+      });
     };
 
     render() {
