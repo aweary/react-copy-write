@@ -68,7 +68,7 @@ A Consumer lets you _consume_ some set of state. It uses a [render prop](https:/
 ```jsx
 const Avatar = () => (
   <Consumer>
-   {([state]) => (
+   {state => (
      <img src={state.user.avatar.src} />
    )}
   </Consumer>
@@ -84,7 +84,7 @@ If a Consumer observes the entire state tree then it will update anytime _any_ v
 ```jsx
 const Avatar = () => (
   <Consumer select={[state => state.user.avatar.src]}>
-    {([src]) => <img src={src} />}
+    {src => <img src={src} />}
   </Consumer>
 )
 ```
@@ -97,52 +97,10 @@ const Avatar = () => (
     state => state.user.avatar.src,
     state => state.theme.avatar,
   ]}>
-    {([src, avatarTheme]) => <img src={src} style={avatarTheme} />}
+    {(src, avatarTheme) => <img src={src} style={avatarTheme} />}
   </Consumer>
 )
 ```
-
-### Consuming other values
-
-Consumers are very good about not re-rendering unless they have to. Too good in some comes.
-
-```jsx
-const Avatar = ({ size }) => (
-  <Consumer select={[
-    state => state.user.avatar.src,
-    state => state.theme.avatar,
-  ]}>
-    {([src, avatarTheme]) => (
-      <img
-        className={`avatar-${size}`}
-        src={src}
-        style={avatarTheme} />
-    )}
-  </Consumer>
-)
-```
-
-In this iteration Avatar uses a `size` prop to control the size of the rendered image. But because the Consumer is optimized-to-a-fault it won't re-render unless the selected state derived in `select` changes. We can fix this by telling the Consumer to _consume_ size.
-
-```jsx
-const Avatar = ({ size }) => (
-  <Consumer consume={{size}} select={[
-    state => state.user.avatar.src,
-    state => state.theme.avatar,
-  ]}>
-    {([src, avatarTheme]) => (
-      <img
-        className={`avatar-${size}`}
-        src={src}
-        style={avatarTheme} />
-    )}
-  </Consumer>
-)
-```
-
-Now the Consumer will update if size or any of selected state values update.
-
-
 ## Optimized Selectors
 
 `createState` also returns a `createSelector` function which you can use to create an _optimized selector_. This selector should be defined outside of render, and ideally be something you use across multiple components.
@@ -209,11 +167,11 @@ Consumer callback also have a second argument, which is a `mutate` function whic
 
 ```jsx
 const Avatar = ({ size }) => (
-  <Consumer consume={{size}} select={[
+  <Consumer select={[
     state => state.user.avatar.src,
     state => state.theme.avatar,
   ]}>
-    {([src, avatarTheme]) => (
+    {(src, avatarTheme) => (
       <img
         onClick={() => mutate(draft => {
           // Mutate state! You dont have to worry about it!
@@ -227,5 +185,5 @@ const Avatar = ({ size }) => (
 )
 ```
 
-You can also use `mutate` directly from the collection returned by `createState` if you want to update state outside of render.
 
+Since `mutate` is returned by `createState` you can call it anywhere. If you've used Redux you can think of it like `dispatch` in that sense.
