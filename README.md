@@ -101,6 +101,39 @@ const Avatar = () => (
   </Consumer>
 )
 ```
+
+## Updating State
+
+`createState` also returns a `mutate` function that you can use to make state updates.
+
+```js
+const {mutate, Consumer, Provider} = createState({...})
+```
+
+Mutate takes a single function as an argument, which will be passed a "draft" of the current state. This draft is a mutable copy that you can edit directly with simple mutations
+
+```js
+const addTodo = todo => {
+  mutate(draft => {
+    draft.todos.push(todo);
+  })
+}
+```
+
+You don't have to worry about creating new objects or arrays if you're only updating a single item or property. 
+
+```
+const updateUserName = (id, name) => {
+  mutate(draft => {
+    draft.users[id].name = name;
+    draft.users[id].lastUpdate = Date.now();
+  })
+}
+```
+
+Since `mutate` is returned by `createState` you can call it anywhere. If you've used Redux you can think of it like `dispatch` in that sense.
+
+
 ## Optimized Selectors
 
 `createState` also returns a `createSelector` function which you can use to create an _optimized selector_. This selector should be defined outside of render, and ideally be something you use across multiple components.
@@ -160,30 +193,3 @@ const App = () => (
 )
 ```
 
-
-## Updating State
-
-Consumer callback also have a second argument, which is a `mutate` function which itself takes a function. That function is called with a draft of the current state that you can _mutate_ to update values, and a copy of the current state if you need to read anything from it (reading from the draft can be slow)
-
-```jsx
-const Avatar = ({ size }) => (
-  <Consumer select={[
-    state => state.user.avatar.src,
-    state => state.theme.avatar,
-  ]}>
-    {(src, avatarTheme) => (
-      <img
-        onClick={() => mutate(draft => {
-          // Mutate state! You dont have to worry about it!
-          draft.avatarClickCount++;
-        })}
-        className={`avatar-${size}`}
-        src={src}
-        style={avatarTheme} />
-    )}
-  </Consumer>
-)
-```
-
-
-Since `mutate` is returned by `createState` you can call it anywhere. If you've used Redux you can think of it like `dispatch` in that sense.
