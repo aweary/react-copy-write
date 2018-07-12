@@ -122,14 +122,17 @@ const addTodo = todo => {
 
 You don't have to worry about creating new objects or arrays if you're only updating a single item or property. 
 
-```
+```js
 const updateUserName = (id, name) => {
   mutate(draft => {
+    // No object spread required 😍
     draft.users[id].name = name;
     draft.users[id].lastUpdate = Date.now();
   })
 }
 ```
+
+Check out [the Immer docs for more information](https://github.com/mweststrate/immer).
 
 Since `mutate` is returned by `createState` you can call it anywhere. If you've used Redux you can think of it like `dispatch` in that sense.
 
