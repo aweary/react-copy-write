@@ -32,7 +32,7 @@ export default function createCopyOnWriteState(baseState) {
       `mutate(...): you cannot call mutate when no CopyOnWriteStoreProvider ` +
         `instance is mounted. Make sure to wrap your consumer components with ` +
         `the returned Provider, and/or delay your mutate calls until the component ` +
-        `tree is moutned.`
+        `tree is mounted.`
     );
     updateState(fn);
   }
