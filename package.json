@@ -12,6 +12,7 @@
     "prettier": "prettier --write \"{src,__tests__}/**/*.js\""
   },
   "dependencies": {
+    "create-react-context": "^0.2.2",
     "fbjs": "^0.8.16",
     "immer": "^1.2.1",
     "invariant": "^2.2.4"
