@@ -1,6 +1,6 @@
 {
   "name": "react-copy-write",
-  "version": "0.7.0",
+  "version": "0.8.0",
   "main": "lib/index.js",
   "author": "Brandon Dail <brandondail@fb.com>",
   "license": "MIT",
