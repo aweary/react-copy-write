@@ -86,14 +86,11 @@ export default function createCopyOnWriteState(baseState) {
   }
 
   class ConsumerMemoization extends React.Component {
-    shouldComponentUpdate({ state, consume, version }) {
+    shouldComponentUpdate({ state }) {
       const currentState = this.props.state;
-      return (
-        version !== this.props.version ||
-        state.some(
-          (observedState, i) => !shallowEqual(observedState, currentState[i])
-        )
-      );
+      return state.some(
+        (observedState, i) => !shallowEqual(observedState, currentState[i])
+      )
     }
 
     render() {
@@ -133,7 +130,7 @@ export default function createCopyOnWriteState(baseState) {
       const { children, select, render } = this.props;
       const observedState = select.map(fn => fn(state));
       return (
-        <ConsumerMemoization version={version} state={observedState}>
+        <ConsumerMemoization key={version} state={observedState}>
           {typeof render === "function" ? render : children}
         </ConsumerMemoization>
       );
