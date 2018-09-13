@@ -7,7 +7,7 @@
   "scripts": {
     "flow": "flow",
     "test": "jest",
-    "build": "babel src --out-dir lib",
+    "build": "babel src --out-dir lib --copy-files",
     "prepare": "npm run build",
     "prettier": "prettier --write \"{src,__tests__}/**/*.js\""
   },
