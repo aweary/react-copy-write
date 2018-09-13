@@ -13,9 +13,9 @@
   },
   "dependencies": {
     "create-react-context": "^0.2.2",
-    "fbjs": "^0.8.16",
     "immer": "^1.2.1",
-    "invariant": "^2.2.4"
+    "invariant": "^2.2.4",
+    "shallowequal": "^1.1.0"
   },
   "peerDependencies": {
     "react": "^16.3.0"
@@ -32,8 +32,8 @@
     "flow-bin": "^0.77.0",
     "jest": "^22.4.3",
     "prettier": "^1.12.0",
-    "react": "^16.3.1",
-    "react-dom": "^16.3.1",
+    "react": "^16.5.0",
+    "react-dom": "^16.5.0",
     "react-testing-library": "^3.1.4",
     "regenerator-runtime": "^0.11.1"
   }
