@@ -151,6 +151,6 @@ export default function createCopyOnWriteState(baseState) {
     Consumer: CopyOnWriteConsumer,
     mutate,
     createSelector,
-    current: () => currentState
+    getCurrent: () => currentState
   };
 }
