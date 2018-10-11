@@ -15,7 +15,7 @@ import React, { Component } from "react";
 import produce from "immer";
 import invariant from "invariant";
 import shallowEqual from "fbjs/lib/shallowEqual";
-import createContext from "create-react-context";
+import createContext from 'create-react-context';
 
 // The default selector is the identity function
 function identityFn(n) {
