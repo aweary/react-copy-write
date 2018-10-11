@@ -15,7 +15,7 @@ import React, { Component } from "react";
 import produce from "immer";
 import invariant from "invariant";
 import shallowEqual from "fbjs/lib/shallowEqual";
-import createContext from 'create-react-context'
+import createContext from "create-react-context";
 
 // The default selector is the identity function
 function identityFn(n) {
@@ -24,6 +24,7 @@ function identityFn(n) {
 
 export default function createCopyOnWriteState(baseState) {
   let updateState = null;
+  let currentState = baseState;
   const State = createContext(baseState);
   // Wraps immer's produce. Only notifies the Provider
   // if the returned draft has been changed.
@@ -72,6 +73,7 @@ export default function createCopyOnWriteState(baseState) {
         if (nextState === state) {
           return null;
         }
+        currentState = nextState;
         return nextState;
       });
     };
@@ -148,6 +150,7 @@ export default function createCopyOnWriteState(baseState) {
     Provider: CopyOnWriteStoreProvider,
     Consumer: CopyOnWriteConsumer,
     mutate,
-    createSelector
+    createSelector,
+    current: () => currentState
   };
 }
