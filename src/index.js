@@ -24,6 +24,7 @@ function identityFn(n) {
 
 export default function createCopyOnWriteState(baseState) {
   let updateState = null;
+  let currentState = baseState;
   const State = createContext(baseState);
   // Wraps immer's produce. Only notifies the Provider
   // if the returned draft has been changed.
@@ -72,6 +73,7 @@ export default function createCopyOnWriteState(baseState) {
         if (nextState === state) {
           return null;
         }
+        currentState = nextState;
         return nextState;
       });
     };
@@ -148,6 +150,7 @@ export default function createCopyOnWriteState(baseState) {
     Provider: CopyOnWriteStoreProvider,
     Consumer: CopyOnWriteConsumer,
     mutate,
-    createSelector
+    createSelector,
+    getCurrent: () => currentState
   };
 }
