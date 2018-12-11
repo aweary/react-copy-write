@@ -15,7 +15,7 @@ import React, { Component } from "react";
 import produce from "immer";
 import invariant from "invariant";
 import shallowEqual from "fbjs/lib/shallowEqual";
-import createContext from 'create-react-context'
+import createContext from "create-react-context";
 
 // The default selector is the identity function
 function identityFn(n) {
@@ -24,6 +24,7 @@ function identityFn(n) {
 
 export default function createCopyOnWriteState(baseState) {
   let updateState = null;
+  let mutateQueue = [];
   const State = createContext(baseState);
   // Wraps immer's produce. Only notifies the Provider
   // if the returned draft has been changed.
@@ -31,9 +32,8 @@ export default function createCopyOnWriteState(baseState) {
     invariant(
       updateState !== null,
       `mutate(...): you cannot call mutate when no CopyOnWriteStoreProvider ` +
-        `instance is mounted. Make sure to wrap your consumer components with ` +
-        `the returned Provider, and/or delay your mutate calls until the component ` +
-        `tree is mounted.`
+        `instance is constructed. Make sure to wrap your consumer components with ` +
+        `the returned Provider`
     );
     updateState(fn);
   }
@@ -51,15 +51,33 @@ export default function createCopyOnWriteState(baseState) {
   }
 
   class CopyOnWriteStoreProvider extends React.Component {
+    constructor(props) {
+      super(props);
+
+      // If provider doesn't mounted yet, enqueue requests
+      updateState = mutateQueue.unshift;
+      this.mounted = false;
+    }
+
     state = this.props.initialState || baseState;
 
     componentDidMount() {
       invariant(
-        updateState === null,
+        this.mounted === false,
         `CopyOnWriteStoreProvider(...): There can only be a single ` +
           `instance of a provider rendered at any given time.`
       );
+
+      this.mounted = true;
+
       updateState = this.updateState;
+
+      // dequeue and call requests that pushed the queue before
+      // provider mounted
+      while (mutateQueue.length > 0) {
+        const fn = mutateQueue.pop();
+        updateState(fn);
+      }
     }
 
     componentWillUnmount() {

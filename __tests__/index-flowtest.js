@@ -3,21 +3,21 @@
  * @format
  */
 
-import React from 'react';
-import type { Store } from '../src/index.js';
-import createStore from '../src/index.js';
+import React from "react";
+import type { Store } from "../src/index.js";
+import createStore from "../src/index.js";
 
 type User = { name: string, age: number };
 type State = {
   users: Array<User>,
-  version: number,
+  version: number
 };
 
 const store: Store<State> = createStore(
   ({
     users: [],
-    version: 100,
-  }: State),
+    version: 100
+  }: State)
 );
 
 const { Provider, Consumer, mutate } = store;
@@ -79,7 +79,7 @@ function testIncorrectConsumer() {
 
 function testMutate() {
   mutate((draft, state) => {
-    draft.users = [{ name: 'shengmin', age: 20 }];
+    draft.users = [{ name: "shengmin", age: 20 }];
     draft.version = state.version + 1;
   });
 }
@@ -87,7 +87,7 @@ function testMutate() {
 function testIncorrectMutate() {
   mutate((draft, state) => {
     // $FlowExpectedError
-    draft.users = '';
+    draft.users = "";
     // $FlowExpectedError
     draft.version = state.versions + 1;
   });

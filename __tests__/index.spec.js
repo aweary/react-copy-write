@@ -443,4 +443,42 @@ describe("copy-on-write-store", () => {
     render(<App />);
     expect(log).toEqual(["foo"]);
   });
+
+  it("supports mutate calls before provider mounts", () => {
+    let log = [];
+    const { Provider, Consumer } = createState({ foo: "" });
+
+    let waitForMount = new Promise(resolve => {
+      class MutatingComponent extends React.Component {
+        componentDidMount() {
+          mutate(draft => {
+            draft.foo = "bar";
+            resolve();
+          });
+        }
+
+        render() {
+          return null;
+        }
+      }
+
+      const App = () => (
+        <Provider>
+          <Consumer
+            select={[state => state.foo]}
+            render={foo => {
+              log.push(foo);
+              return null;
+            }}
+          />
+          <MutatingComponent />
+        </Provider>
+      );
+      render(<App />);
+    });
+
+    waitForMount.then(() => {
+      expect(log).toEqual(["bar"]);
+    });
+  });
 });
