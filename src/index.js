@@ -29,6 +29,12 @@ export default function createCopyOnWriteState(baseState) {
   // Wraps immer's produce. Only notifies the Provider
   // if the returned draft has been changed.
   function mutate(fn) {
+    invariant(
+      updateState !== null,
+      `mutate(...): you cannot call mutate when no CopyOnWriteStoreProvider ` +
+        `instance is constructed. Make sure to wrap your consumer components with ` +
+        `the returned Provider`
+    );
     updateState(fn);
   }
 
@@ -63,7 +69,7 @@ export default function createCopyOnWriteState(baseState) {
       );
 
       this.mounted = true;
-      
+
       updateState = this.updateState;
 
       // dequeue and call requests that pushed the queue before

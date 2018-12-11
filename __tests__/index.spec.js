@@ -444,7 +444,6 @@ describe("copy-on-write-store", () => {
     expect(log).toEqual(["foo"]);
   });
 
-
   it("supports mutate calls before provider mounts", () => {
     let log = [];
     const { Provider, Consumer } = createState({ foo: "" });
