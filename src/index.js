@@ -29,12 +29,7 @@ export default function createCopyOnWriteState(baseState) {
   // Wraps immer's produce. Only notifies the Provider
   // if the returned draft has been changed.
   function mutate(fn) {
-    // If provider doesn't mounted yet, enqueue requests
-    if (updateState === null) {
-      mutateQueue.unshift(fn);
-    } else {
-      updateState(fn);
-    }
+    updateState(fn);
   }
 
   /**
@@ -50,15 +45,25 @@ export default function createCopyOnWriteState(baseState) {
   }
 
   class CopyOnWriteStoreProvider extends React.Component {
+    constructor(props) {
+      super(props);
+
+      // If provider doesn't mounted yet, enqueue requests
+      updateState = mutateQueue.unshift;
+      this.mounted = false;
+    }
+
     state = this.props.initialState || baseState;
 
     componentDidMount() {
       invariant(
-        updateState === null,
+        this.mounted === false,
         `CopyOnWriteStoreProvider(...): There can only be a single ` +
           `instance of a provider rendered at any given time.`
       );
 
+      this.mounted = true;
+      
       updateState = this.updateState;
 
       // dequeue and call requests that pushed the queue before
