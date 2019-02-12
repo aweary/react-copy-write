@@ -19,21 +19,20 @@ react-copy-write lets you use straightforward mutations to update an immutable s
 
 react-copy-write is currently under-going significant API changes as it's tested in a production environment. Most documentation has been removed until we arrive at a stable API. Below you will find a bare-bones API reference that should get you started.
 
-
 # `createState`
 
 The default export of the package. Takes in an initial state object and returns a collection of components and methods for reading, rendering, and updating state.
 
-
 ```jsx
-import createState from 'react-copy-write'
+import createState from "react-copy-write";
 
 const {
   Provider,
   Consumer,
   createSelector,
   mutate,
-} = createState({name: 'Brandon' });
+  useCopyWrite
+} = createState({ name: "Brandon" });
 ```
 
 # `Provider`
@@ -45,19 +44,18 @@ const App = () => (
   <Provider>
     <AppBody />
   </Provider>
-)
+);
 ```
 
 If you need to initialize state from props you can use the `initialState` prop to do so. Note that it only initializes state, updating `initialState` will have no effect.
 
 ```jsx
-const App = ({user}) => (
-  <Provider initialState={{name: user.name }}>
+const App = ({ user }) => (
+  <Provider initialState={{ name: user.name }}>
     <AppBody />
   </Provider>
-)
+);
 ```
-
 
 ## `Consumer`
 
@@ -65,12 +63,8 @@ A Consumer lets you _consume_ some set of state. It uses a [render prop](https:/
 
 ```jsx
 const Avatar = () => (
-  <Consumer>
-   {state => (
-     <img src={state.user.avatar.src} />
-   )}
-  </Consumer>
-)
+  <Consumer>{state => <img src={state.user.avatar.src} />}</Consumer>
+);
 ```
 
 The render callback is always called with a tuple of the observed state, using an array. By default that tuple contains one element: the entire state tree.
@@ -84,20 +78,49 @@ const Avatar = () => (
   <Consumer select={[state => state.user.avatar.src]}>
     {src => <img src={src} />}
   </Consumer>
-)
+);
 ```
 
 Now the Avatar component will only re-render if `state.user.avatar.src` changes. If a component depends on multiple state values you can just pass in more selectors.
 
 ```jsx
 const Avatar = () => (
-  <Consumer select={[
-    state => state.user.avatar.src,
-    state => state.theme.avatar,
-  ]}>
+  <Consumer
+    select={[state => state.user.avatar.src, state => state.theme.avatar]}
+  >
     {(src, avatarTheme) => <img src={src} style={avatarTheme} />}
   </Consumer>
-)
+);
+```
+
+## `useCopyWrite` Hook
+
+[Hooks](https://reactjs.org/docs/hooks-intro.html) are a new addition in React 16.8. They let you use `react-copy-write` without using render functions.
+
+Let's write our `Avatar` component in the previous example using the `useCopyWrite` hook instead.
+
+```jsx
+const Avatar = () => {
+  const [src, avatarTheme] = useCopyWrite([
+    state => state.user.avatar.src,
+    state => state.theme.avatar
+  ]);
+  return <img src={src} style={avatarTheme} />;
+};
+```
+
+### Preventing unnecessary updates with `useCopyWrite`
+
+There is one notable difference between using the render prop approach (`<Consumer />`) and using the hook approach (`useCopyWrite`). Using the render prop will only re-render if selected state changes, however, this is currently not possible with the `useCopyWrite` hook. You can visit [this issue for more information](https://github.com/facebook/react/issues/14110).
+
+There is a workaround however, you can use the `useCopyWriteMemo` hook. This will use the [`useMemo`](https://reactjs.org/docs/hooks-reference.html#usememo) hook internally to check for state changes.
+
+```jsx
+const Avatar = () =>
+  useCopyWriteMemo(
+    [state => state.user.avatar.src, state => state.theme.avatar],
+    ([src, avatarTheme]) => <img src={src} style={avatarTheme} />
+  );
 ```
 
 ## Updating State
@@ -114,11 +137,11 @@ Mutate takes a single function as an argument, which will be passed a "draft" of
 const addTodo = todo => {
   mutate(draft => {
     draft.todos.push(todo);
-  })
-}
+  });
+};
 ```
 
-You don't have to worry about creating new objects or arrays if you're only updating a single item or property. 
+You don't have to worry about creating new objects or arrays if you're only updating a single item or property.
 
 ```js
 const updateUserName = (id, name) => {
@@ -126,14 +149,13 @@ const updateUserName = (id, name) => {
     // No object spread required 😍
     draft.users[id].name = name;
     draft.users[id].lastUpdate = Date.now();
-  })
-}
+  });
+};
 ```
 
 Check out [the Immer docs for more information](https://github.com/mweststrate/immer).
 
 Since `mutate` is returned by `createState` you can call it anywhere. If you've used Redux you can think of it like `dispatch` in that sense.
-
 
 ## Optimized Selectors
 
@@ -147,11 +169,11 @@ You can get some really, really nice speed if you use this and follow a few rule
 
 ### Don't call `createSelector` in render.
 
-
 🚫
+
 ```jsx
 const App = () => (
-  // Don't do this 
+  // Don't do this
   <Consumer select={[createSelector(state => state.user)]}>
     {...}
   </Consumer>
@@ -159,6 +181,7 @@ const App = () => (
 ```
 
 👍
+
 ```jsx
 // Define it outside of render!
 const selectUser = createSelector(state => state.user);
@@ -172,6 +195,7 @@ const App = () => (
 ### Avoid mixing optimized and un-optimized selectors
 
 🚫
+
 ```jsx
 const selectUser = createSelector(state => state.user);
 const App = () => (
@@ -184,6 +208,7 @@ const App = () => (
 ```
 
 👍
+
 ```jsx
 const selectUser = createSelector(state => state.user);
 const selectTheme = createSelector(state => state.theme);
@@ -193,4 +218,3 @@ const App = () => (
   </Consumer>
 )
 ```
-

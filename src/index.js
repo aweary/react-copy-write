@@ -15,7 +15,7 @@ import React, { Component } from "react";
 import produce from "immer";
 import invariant from "invariant";
 import shallowEqual from "fbjs/lib/shallowEqual";
-import createContext from 'create-react-context'
+import createContext from "create-react-context";
 
 // The default selector is the identity function
 function identityFn(n) {
@@ -144,10 +144,28 @@ export default function createCopyOnWriteState(baseState) {
     }
   }
 
+  function useCopyWrite(select) {
+    const contextState = React.useContext(State);
+    if (Array.isArray(select)) {
+      return select.map(fn => fn(contextState));
+    }
+    return [contextState];
+  }
+
+  function useCopyWriteMemo(select, fn) {
+    const contextState = useCopyWrite(select);
+    if (!(typeof fn === "function")) {
+      return contextState;
+    }
+    return React.useMemo(() => fn(...contextState), contextState);
+  }
+
   return {
     Provider: CopyOnWriteStoreProvider,
     Consumer: CopyOnWriteConsumer,
     mutate,
-    createSelector
+    createSelector,
+    useCopyWrite,
+    useCopyWriteMemo
   };
 }
